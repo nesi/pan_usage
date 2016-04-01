@@ -1,0 +1,1731 @@
+<html>
+<head>
+<title>CPU Usage</title>
+<meta name="robots" content="noindex,nofollow" />
+<meta name="description" content="Pan Cluster Management IPV4 Ping State" />
+
+<script> var ping_target='heatmap';
+         var state_file='/cgi-bin/noheader/heatmapjson2.cgi';
+         var ignore_file='ignore.json';
+         var page_header='Pan Usage Heatmap';
+</script>
+
+<script src="/rgraph/libraries/RGraph.common.core.js" ></script>
+<script src="/rgraph/jquery.min.js"></script>
+     
+<style type="text/css">
+table.rack {
+  background-color: black;
+}
+table.rack td {
+  border-width: 1px;
+  border-style: solid;
+  border-color: orange;
+  padding: 0px;
+  padding: 0px;
+  background-color: white;
+  color: white;
+  font-family:sans-serif;
+  font-size:10pt;
+  height: 15px;
+  width: 15px;
+}
+table.rack td.empty {
+  border-width: 1px;
+  border-style: solid;
+  border-color: black;
+  padding: 0px;
+  padding: 0px;
+  background-color: black;
+  color: white;
+  font-family:sans-serif;
+  font-size:10pt;
+  height: 15px;
+  width: 15px;
+}
+table.rack th {
+  border-width: 1px;
+  border-style: solid;
+  border-color: white;
+  padding: 0px;
+  padding: 0px;
+  background-color: white;
+  color: black;
+  font-family:sans-serif;
+  font-size:10pt;
+  height: 15px;
+  width: 15px;
+}
+</style>
+
+<script>
+  
+var cpu_dev_colourmap =       [            '#00ff00', '#06ff06', '#1eff1e', '#37ff37', '#50ff50', '#69ff69', '#82ff82', '#9bff9b', '#b4ffb4', '#cdffcd', 
+                                '#ffffff', 
+                                           '#ffe6e6', '#ffcdcd', '#ffb4b4', '#ff9b9b', '#ff8282', '#ff6969', '#ff5050', '#ff3737', '#ff1e1e', '#ff0000', '#eeee00'];
+  var last_state = null;
+  var date_stamp = null;
+  var ignored = {};
+  var overloaded_nodes_table;
+  var nodes_with_weak_processes_table;
+
+  function cell_colour(cell_type, used, reqested, max_value)
+  {
+    switch( cell_type ) {
+    case 'default': // cpusused/cpus Or cpusreq/cpus Or memused_mb/ mem_mb
+      color_index = Math.round(used*10/max_value)
+      if( used > max_value ) { color_index = 11 }
+      if( used < -10) { color_index = -10 } //Shouldn't be possible, but I have seen a -2 request?
+      return cpu_dev_colourmap[color_index + 10];
+    case 'deviation': // (cpusused - cpusreq') / cpus Or  (memused_mb - memreq_mb) / mem_mb
+      color_index = Math.round((used - reqested) * 10 / max_value)
+      if( color_index < -10 ) { color_index = -10 }
+      else { if( color_index > 10 ) { color_index = 11 } }
+      return cpu_dev_colourmap[color_index + 10];
+    case 'ignore': //Not interested in this node
+      return 'grey';
+    default:
+      return 'black';
+    }
+  }  
+
+  function set_cell(table, cell_id, state_index, title) {
+    var the_cell = document.getElementById(cell_id);
+    var select_category = document.getElementById(table + '_view');
+    new_state = last_state[state_index];
+    if(the_cell != null && select_category != null) {
+      if(ignored[state_index] != null) {
+        the_cell.title = state_index;
+        the_cell.style.backgroundColor = 'grey'; 
+        the_cell.style.borderColor = 'black';
+      }
+      else {
+        if(new_state != null && new_state['cpus'] != null ) {
+          var background = 'black';
+          switch( select_category.value ) {
+          case "cpusdeviation": 
+            background = cell_colour('deviation', new_state['cpusused'], new_state['cpusreq'], new_state['cpus']);
+            break;
+          case "cpusreq":
+            background = cell_colour('default', new_state['cpusreq'], 0, new_state['cpus']);
+            break;
+          case "cpusused":
+            background = cell_colour('default', new_state['cpusused'], 0, new_state['cpus']);
+            break;
+          case "memdeviation":
+            background = cell_colour('deviation', new_state['memused_mb'], new_state['memreq_mb'], new_state['mem_mb']);
+            break;
+          case "memreq":
+            background = cell_colour('default', new_state['memreq_mb'], 0, new_state['mem_mb']);
+            break;
+          case "memused":
+            background = cell_colour('default', new_state['memused_mb'], 0, new_state['mem_mb']);
+            break;
+          } 
+          the_cell.title = state_index + 
+                          '\n\nCPUs: ' + new_state['cpus'] + '\nCPUs requested: ' + new_state['cpusreq'] + '\nCPUs used: ' + new_state['cpusused'] +
+                          '\n\nMemory: ' +  new_state['mem_mb'] + '\nMemory requested: ' + new_state['memreq_mb'] + '\nMemory used: ' + new_state['memused_mb'] +
+                          '\n\nVirtual Memory: ' +  new_state['vmem_mb'] + '\nVirtual Memory requested: ' + new_state['vmemreq_mb'] + '\nVirtualMemory used: ' + new_state['vmemused_mb'];
+          the_cell.style.backgroundColor = background;
+          the_cell.style.borderColor = 'black';
+        }
+        else { //Null new state, so didn't get a record for this host.
+          the_cell.style.backgroundColor = 'white';
+          the_cell.style.borderColor = 'orange';
+          the_cell.title = state_index  ;
+        } 
+      }
+    }
+  }
+  
+  var delay_state = 120000; //2 minutes
+        
+  function myAJAXCallback_state(data) {
+    date_stamp = data.datetime.substring(0,19);
+    last_state = data.state;
+    process_each_rack();
+    // Make another AJAX call after the delay (which is in milliseconds)
+    setTimeout(function () { RGraph.AJAX.getJSON(window.state_file + "?timestamp="+ Date.now(), myAJAXCallback_state); }, delay_state);
+  }
+    
+  function myAJAXCallback_ignore(data) {
+    for(var i=0; i < data.ignore.length; i++) {
+      ignored[data.ignore[i]] = 1
+    }
+    
+    // Make another AJAX call after the delay (which is in milliseconds)
+    setTimeout(function () { RGraph.AJAX.getJSON(window.ignore_file + "?timestamp="+ Date.now(), myAJAXCallback_ignore); }, delay_state);
+  }
+
+
+  function drop_table_cells(table) {
+    for(var i = table.rows.length - 1; i >= 0; i--) { 
+      table.deleteRow(i)
+    }
+  }
+  
+  function set_nodes_with_weak_processes(state_index) {
+    var table_rows = [];
+    drop_table_cells(nodes_with_weak_processes_table);
+    
+    for(var s in last_state) {
+      if(last_state[s] != null && last_state[s]["num_weak_processes"] != null && last_state[s]["num_weak_processes"] > 0) {
+        table_rows.push([s, last_state[s]["num_weak_processes"]])
+      }
+    }
+    table_rows.sort(function(a, b) {return a[1] - b[1]})
+        
+    for(var i=0; i < table_rows.length; i++) {
+      var row = nodes_with_weak_processes_table.insertRow(0);
+      var cell1 = row.insertCell(0);
+      var cell2 = row.insertCell(1);
+      cell1.innerHTML = '<a href="https://web.ceres.auckland.ac.nz/portal/#/portal/hpc/cgi-bin/noheader/shownode.cgi?nodename=' + table_rows[i][0] + '">'+ table_rows[i][0] +'</a>'
+      cell2.innerHTML = table_rows[i][1];
+    }
+  }
+  
+  function set_overloaded_nodes(){
+    var table_rows = [];
+    
+    drop_table_cells(overloaded_nodes_table);
+    
+    for(var s in last_state) {
+      if(last_state[s] != null && last_state[s]["cpusused"] != null && last_state[s]["cpusused"] > last_state[s]["cpus"]) {
+        table_rows.push([s, last_state[s]["cpusused"] - last_state[s]["cpus"], last_state[s]["cpusused"], last_state[s]["cpus"]])
+      }
+    }
+    table_rows.sort(function(a, b) {return a[1] - b[1]})
+    
+    for(var i=0; i < table_rows.length; i++) {
+      var row = overloaded_nodes_table.insertRow(0);
+      var cell1 = row.insertCell(0);
+      var cell2 = row.insertCell(1);
+      var cell3 = row.insertCell(2);
+      var cell4 = row.insertCell(3);
+      cell1.innerHTML = '<a href="https://web.ceres.auckland.ac.nz/portal/#/portal/hpc/cgi-bin/noheader/shownode.cgi?nodename=' + table_rows[i][0] + '">'+ table_rows[i][0] +'</a>'
+      cell2.innerHTML = table_rows[i][1];
+      cell3.innerHTML = table_rows[i][2];
+      cell4.innerHTML = table_rows[i][3];
+    }
+  }
+  
+  function process_table(t) {
+    var the_table = document.getElementById(t);
+    var rowLength = the_table.rows.length;
+    var table_date_stamp = document.getElementById(t + '_date_stamp');
+    table_date_stamp.innerHTML = date_stamp;
+
+    for(var i=0; i<rowLength; i+=1) {
+      var row = the_table.rows[i];
+      var cellLength = row.cells.length;
+      for(var y=0; y<cellLength; y+=1) {
+        var cell = row.cells[y];
+        c = cell.id.toString();
+        if(c != null && c != "" && c != t + "_view") {
+          state_index = c.substr(t.length + 1)
+          set_cell(t, c, state_index, '');
+        }
+      }
+    }    
+  }
+  
+  function calc_load() {
+    // Calculate total cluster load
+    var cluster_actual_load = 0.0
+    var cluster_requested_load = 0.0
+    var load_ratio = 0.0
+    var effective_load = 0.0
+    var count = 0
+
+    for( key in last_state ) {
+      if(last_state[key]['total_actual_load'] != null) {
+        cluster_actual_load += last_state[key]['total_actual_load'] / last_state[key]['cpus']
+        cluster_requested_load += last_state[key]['total_requested_load'] / last_state[key]['cpus']
+        count += 1
+      }
+    }
+    if( count > 0 ) {
+      cluster_actual_load = cluster_actual_load / count
+      cluster_requested_load = cluster_requested_load / count
+    }
+    if( cluster_requested_load > 0 ) {
+      load_ratio = cluster_actual_load / cluster_requested_load
+      effective_load = (cluster_actual_load / cluster_requested_load) * cluster_actual_load
+    }
+    var actual_load_el = document.getElementById('actual_load');
+    var requested_load_el = document.getElementById('requested_load')
+    var load_ratio_el = document.getElementById('load_ratio')
+    var effective_load_el = document.getElementById('effective_load')
+    actual_load_el.innerHTML = Math.round(cluster_actual_load.toString());
+    requested_load_el.innerHTML = Math.round(cluster_requested_load.toString());
+    load_ratio_el.innerHTML = Math.round(100 * load_ratio.toString())/100.0;
+    effective_load_el.innerHTML = Math.round(effective_load.toString());
+  }
+  
+  function process_each_rack() {
+    calc_load();
+    process_table('tdc_l');
+    process_table('tdc_m');
+    process_table('tdc_r');
+    set_overloaded_nodes();
+    set_nodes_with_weak_processes();
+  }
+  
+  function recolor() {
+    if(last_state != null) {  process_each_rack(); }
+  }
+  
+  function table_cell_click(node) {
+    location.href = 'https://web.ceres.auckland.ac.nz/portal/#/portal/hpc/cgi-bin/noheader/shownode.cgi?nodename=' + node
+    return false;
+  }
+
+  function init() {
+  /**
+  * Initial AJAX calls
+  */
+    var header = document.getElementById('header');
+    
+    nodes_with_weak_processes_table = document.getElementById("nodes_with_weak_processes_table");
+    overloaded_nodes_table = document.getElementById("overloaded_nodes_table");
+    
+    setTimeout(function () { RGraph.AJAX.getJSON(window.ignore_file + "?timestamp="+ Date.now(), myAJAXCallback_ignore); }, 0);
+    setTimeout(function () {RGraph.AJAX.getJSON(window.state_file + "?timestamp="+ Date.now(), myAJAXCallback_state);}, 0);
+    header.innerHTML = window.page_header;
+  }
+</script>
+
+</head>
+<body>
+<H1 id="header">XXXX State</H1>
+<b>Cluster load:</b> Actual: <span id='actual_load'>0</span>%, Requested: <span id='requested_load'>0</span>%, Load ratio: <span id='load_ratio'>0.0</span>, Effective Load: <span id='effective_load'>0</span>%<br>
+<table border="0" cellpadding="10">
+  <tr>
+  <td>
+    <table id='tdc_l' class='rack'>
+    <tr><th colspan=21 align='right'>
+      <select id="tdc_l_view" onchange="recolor()">
+        <option value="cpusdeviation">CPU cores: discrepancy used vs requested</option>
+        <option value="cpusreq">CPU cores: requested usage</option>
+        <option value="cpusused" selected>CPU cores: actual usage</option>
+        <option value="memdeviation">Memory: discrepancy used vs requested</option>
+        <option value="memreq">Memory: requested usage</option>
+        <option value="memused">Memory: actual usage</option>
+      </select>
+    </th></tr>
+    <tr>
+    <td id='tdc_l_compute-a1-001' onclick="table_cell_click('compute-a1-001');" table='compute-a1-001'>&nbsp;</td>
+    <td id='tdc_l_compute-a1-002' onclick="table_cell_click('compute-a1-002');" table='compute-a1-002'>&nbsp;</td>
+    <td id='tdc_l_compute-a1-003' onclick="table_cell_click('compute-a1-003');" table='compute-a1-003'>&nbsp;</td>
+    <td id='tdc_l_compute-a1-004' onclick="table_cell_click('compute-a1-004');" table='compute-a1-004'>&nbsp;</td>
+    <td id='tdc_l_compute-a1-005' onclick="table_cell_click('compute-a1-005');" table='compute-a1-005'>&nbsp;</td>
+    <td id='tdc_l_compute-a1-006' onclick="table_cell_click('compute-a1-006');" table='compute-a1-006'>&nbsp;</td>
+    <td id='tdc_l_compute-a1-007' onclick="table_cell_click('compute-a1-007');" table='compute-a1-007'>&nbsp;</td>
+    <td id='tdc_l_compute-a1-008' onclick="table_cell_click('compute-a1-008');" table='compute-a1-008'>&nbsp;</td>
+    <td id='tdc_l_compute-a1-009' onclick="table_cell_click('compute-a1-009');" table='compute-a1-009'>&nbsp;</td>
+    <td id='tdc_l_compute-a1-010' onclick="table_cell_click('compute-a1-010');" table='compute-a1-010'>&nbsp;</td>
+    <td id='tdc_l_compute-a1-011' onclick="table_cell_click('compute-a1-011');" table='compute-a1-011'>&nbsp;</td>
+    <td id='tdc_l_compute-a1-012' onclick="table_cell_click('compute-a1-012');" table='compute-a1-012'>&nbsp;</td>
+    <td id='tdc_l_compute-a1-013' onclick="table_cell_click('compute-a1-013');" table='compute-a1-013'>&nbsp;</td>
+    <td id='tdc_l_compute-a1-014' onclick="table_cell_click('compute-a1-014');" table='compute-a1-014'>&nbsp;</td>
+    <td id='tdc_l_compute-a1-015' onclick="table_cell_click('compute-a1-015');" table='compute-a1-015'>&nbsp;</td>
+    <td id='tdc_l_compute-a1-016' onclick="table_cell_click('compute-a1-016');" table='compute-a1-016'>&nbsp;</td>
+    <td id='tdc_l_compute-a1-017' onclick="table_cell_click('compute-a1-017');" table='compute-a1-017'>&nbsp;</td>
+    <td id='tdc_l_compute-a1-018' onclick="table_cell_click('compute-a1-018');" table='compute-a1-018'>&nbsp;</td>
+    <td id='tdc_l_compute-a1-019' onclick="table_cell_click('compute-a1-019');" table='compute-a1-019'>&nbsp;</td>
+    <td id='tdc_l_compute-a1-020' onclick="table_cell_click('compute-a1-020');" table='compute-a1-020'>&nbsp;</td>
+    <td id='tdc_l_compute-a1-021' onclick="table_cell_click('compute-a1-021');" table='compute-a1-021'>&nbsp;</td>
+    </tr>
+    <tr>
+    <td id='tdc_l_compute-a1-022' onclick="table_cell_click('compute-a1-022');" table='compute-a1-022'>&nbsp;</td>
+    <td id='tdc_l_compute-a1-023' onclick="table_cell_click('compute-a1-023');" table='compute-a1-023'>&nbsp;</td>
+    <td id='tdc_l_compute-a1-024' onclick="table_cell_click('compute-a1-024');" table='compute-a1-024'>&nbsp;</td>
+    <td id='tdc_l_compute-a1-025' onclick="table_cell_click('compute-a1-025');" table='compute-a1-025'>&nbsp;</td>
+    <td id='tdc_l_compute-a1-026' onclick="table_cell_click('compute-a1-026');" table='compute-a1-026'>&nbsp;</td>
+    <td id='tdc_l_compute-a1-027' onclick="table_cell_click('compute-a1-027');" table='compute-a1-027'>&nbsp;</td>
+    <td id='tdc_l_compute-a1-028' onclick="table_cell_click('compute-a1-028');" table='compute-a1-028'>&nbsp;</td>
+    <td id='tdc_l_compute-a1-029' onclick="table_cell_click('compute-a1-029');" table='compute-a1-029'>&nbsp;</td>
+    <td id='tdc_l_compute-a1-030' onclick="table_cell_click('compute-a1-030');" table='compute-a1-030'>&nbsp;</td>
+    <td id='tdc_l_compute-a1-031' onclick="table_cell_click('compute-a1-031');" table='compute-a1-031'>&nbsp;</td>
+    <td id='tdc_l_compute-a1-032' onclick="table_cell_click('compute-a1-032');" table='compute-a1-032'>&nbsp;</td>
+    <td id='tdc_l_compute-a1-033' onclick="table_cell_click('compute-a1-033');" table='compute-a1-033'>&nbsp;</td>
+    <td id='tdc_l_compute-a1-034' onclick="table_cell_click('compute-a1-034');" table='compute-a1-034'>&nbsp;</td>
+    <td id='tdc_l_compute-a1-035' onclick="table_cell_click('compute-a1-035');" table='compute-a1-035'>&nbsp;</td>
+    <td id='tdc_l_compute-a1-036' onclick="table_cell_click('compute-a1-036');" table='compute-a1-036'>&nbsp;</td>
+    <td id='tdc_l_compute-a1-037' onclick="table_cell_click('compute-a1-037');" table='compute-a1-037'>&nbsp;</td>
+    <td id='tdc_l_compute-a1-038' onclick="table_cell_click('compute-a1-038');" table='compute-a1-038'>&nbsp;</td>
+    <td id='tdc_l_compute-a1-039' onclick="table_cell_click('compute-a1-039');" table='compute-a1-039'>&nbsp;</td>
+    <td id='tdc_l_compute-a1-040' onclick="table_cell_click('compute-a1-040');" table='compute-a1-040'>&nbsp;</td>
+    <td id='tdc_l_compute-a1-041' onclick="table_cell_click('compute-a1-041');" table='compute-a1-041'>&nbsp;</td>
+    <td id='tdc_l_compute-a1-042' onclick="table_cell_click('compute-a1-042');" table='compute-a1-042'>&nbsp;</td>
+    </tr>
+    <tr>
+    <td id='tdc_l_compute-a1-043' onclick="table_cell_click('compute-a1-043');" table='compute-a1-043'>&nbsp;</td>
+    <td id='tdc_l_compute-a1-044' onclick="table_cell_click('compute-a1-044');" table='compute-a1-044'>&nbsp;</td>
+    <td id='tdc_l_compute-a1-045' onclick="table_cell_click('compute-a1-045');" table='compute-a1-045'>&nbsp;</td>
+    <td id='tdc_l_compute-a1-046' onclick="table_cell_click('compute-a1-046');" table='compute-a1-046'>&nbsp;</td>
+    <td id='tdc_l_compute-a1-047' onclick="table_cell_click('compute-a1-047');" table='compute-a1-047'>&nbsp;</td>
+    <td id='tdc_l_compute-a1-048' onclick="table_cell_click('compute-a1-048');" table='compute-a1-048'>&nbsp;</td>
+    <td id='tdc_l_compute-a1-049' onclick="table_cell_click('compute-a1-049');" table='compute-a1-049'>&nbsp;</td>
+    <td id='tdc_l_compute-a1-050' onclick="table_cell_click('compute-a1-050');" table='compute-a1-050'>&nbsp;</td>
+    <td id='tdc_l_compute-a1-051' onclick="table_cell_click('compute-a1-051');" table='compute-a1-051'>&nbsp;</td>
+    <td id='tdc_l_compute-a1-052' onclick="table_cell_click('compute-a1-052');" table='compute-a1-052'>&nbsp;</td>
+    <td id='tdc_l_compute-a1-053' onclick="table_cell_click('compute-a1-053');" table='compute-a1-053'>&nbsp;</td>
+    <td id='tdc_l_compute-a1-054' onclick="table_cell_click('compute-a1-054');" table='compute-a1-054'>&nbsp;</td>
+    <td id='tdc_l_compute-a1-055' onclick="table_cell_click('compute-a1-055');" table='compute-a1-055'>&nbsp;</td>
+    <td id='tdc_l_compute-a1-056' onclick="table_cell_click('compute-a1-056');" table='compute-a1-056'>&nbsp;</td>
+    <td id='tdc_l_compute-gpu-a1-001' onclick="table_cell_click('compute-gpu-a1-001');" table='compute-gpu-a1-001'>&nbsp;</td>
+    <td id='tdc_l_compute-gpu-a1-002' onclick="table_cell_click('compute-gpu-a1-002');" table='compute-gpu-a1-002'>&nbsp;</td>
+    <td id='tdc_l_compute-gpu-a1-003' onclick="table_cell_click('compute-gpu-a1-003');" table='compute-gpu-a1-003'>&nbsp;</td>
+    <td id='tdc_l_compute-gpu-a1-004' onclick="table_cell_click('compute-gpu-a1-004');" table='compute-gpu-a1-004'>&nbsp;</td>
+    <td id='tdc_l_compute-a1-057' onclick="table_cell_click('compute-a1-057');" table='compute-a1-057'>&nbsp;</td>
+    <td id='tdc_l_compute-a1-058' onclick="table_cell_click('compute-a1-058');" table='compute-a1-058'>&nbsp;</td>
+    <td id='tdc_l_compute-a1-059' onclick="table_cell_click('compute-a1-059');" table='compute-a1-059'>&nbsp;</td>
+    </tr>
+    <tr>
+    <td id='tdc_l_compute-a1-060' onclick="table_cell_click('compute-a1-060');" table='compute-a1-060'>&nbsp;</td>
+    <td id='tdc_l_compute-a1-061' onclick="table_cell_click('compute-a1-061');" table='compute-a1-061'>&nbsp;</td>
+    <td id='tdc_l_compute-a1-062' onclick="table_cell_click('compute-a1-062');" table='compute-a1-062'>&nbsp;</td>
+    <td id='tdc_l_compute-a1-063' onclick="table_cell_click('compute-a1-063');" table='compute-a1-063'>&nbsp;</td>
+    <td id='tdc_l_compute-a1-064' onclick="table_cell_click('compute-a1-064');" table='compute-a1-064'>&nbsp;</td>
+    <td id='tdc_l_compute-a1-065' onclick="table_cell_click('compute-a1-065');" table='compute-a1-065'>&nbsp;</td>
+    <td id='tdc_l_compute-a1-066' onclick="table_cell_click('compute-a1-066');" table='compute-a1-066'>&nbsp;</td>
+    <td id='tdc_l_compute-a1-067' onclick="table_cell_click('compute-a1-067');" table='compute-a1-067'>&nbsp;</td>
+    <td id='tdc_l_compute-a1-068' onclick="table_cell_click('compute-a1-068');" table='compute-a1-068'>&nbsp;</td>
+    <td id='tdc_l_compute-a1-069' onclick="table_cell_click('compute-a1-069');" table='compute-a1-069'>&nbsp;</td>
+    <td id='tdc_l_compute-a1-070' onclick="table_cell_click('compute-a1-070');" table='compute-a1-070'>&nbsp;</td>
+    <td id='tdc_l_compute-a1-071' onclick="table_cell_click('compute-a1-071');" table='compute-a1-071'>&nbsp;</td>
+    <td id='tdc_l_compute-a1-072' onclick="table_cell_click('compute-a1-072');" table='compute-a1-072'>&nbsp;</td>
+    <td id='tdc_l_compute-a1-073' onclick="table_cell_click('compute-a1-073');" table='compute-a1-073'>&nbsp;</td>
+    <td id='tdc_l_compute-a1-074' onclick="table_cell_click('compute-a1-074');" table='compute-a1-074'>&nbsp;</td>
+    <td id='tdc_l_compute-a1-075' onclick="table_cell_click('compute-a1-075');" table='compute-a1-075'>&nbsp;</td>
+    <td id='tdc_l_compute-a1-076' onclick="table_cell_click('compute-a1-076');" table='compute-a1-076'>&nbsp;</td>
+    <td id='tdc_l_compute-b1-001' onclick="table_cell_click('compute-b1-001');" table='compute-b1-001'>&nbsp;</td>
+    <td id='tdc_l_compute-b1-002' onclick="table_cell_click('compute-b1-002');" table='compute-b1-002'>&nbsp;</td>
+    <td id='tdc_l_compute-b1-003' onclick="table_cell_click('compute-b1-003');" table='compute-b1-003'>&nbsp;</td>
+    <td id='tdc_l_compute-b1-004' onclick="table_cell_click('compute-b1-004');" table='compute-b1-004'>&nbsp;</td>
+    </tr>
+    <tr>
+    <td id='tdc_l_compute-b1-005' onclick="table_cell_click('compute-b1-005');" table='compute-b1-005'>&nbsp;</td>
+    <td id='tdc_l_compute-b1-006' onclick="table_cell_click('compute-b1-006');" table='compute-b1-006'>&nbsp;</td>
+    <td id='tdc_l_compute-b1-007' onclick="table_cell_click('compute-b1-007');" table='compute-b1-007'>&nbsp;</td>
+    <td id='tdc_l_compute-b1-008' onclick="table_cell_click('compute-b1-008');" table='compute-b1-008'>&nbsp;</td>
+    <td id='tdc_l_compute-b1-009' onclick="table_cell_click('compute-b1-009');" table='compute-b1-009'>&nbsp;</td>
+    <td id='tdc_l_compute-b1-010' onclick="table_cell_click('compute-b1-010');" table='compute-b1-010'>&nbsp;</td>
+    <td id='tdc_l_compute-b1-011' onclick="table_cell_click('compute-b1-011');" table='compute-b1-011'>&nbsp;</td>
+    <td id='tdc_l_compute-b1-012' onclick="table_cell_click('compute-b1-012');" table='compute-b1-012'>&nbsp;</td>
+    <td id='tdc_l_compute-b1-013' onclick="table_cell_click('compute-b1-013');" table='compute-b1-013'>&nbsp;</td>
+    <td id='tdc_l_compute-b1-014' onclick="table_cell_click('compute-b1-014');" table='compute-b1-014'>&nbsp;</td>
+    <td id='tdc_l_compute-b1-015' onclick="table_cell_click('compute-b1-015');" table='compute-b1-015'>&nbsp;</td>
+    <td id='tdc_l_compute-b1-016' onclick="table_cell_click('compute-b1-016');" table='compute-b1-016'>&nbsp;</td>
+    <td id='tdc_l_compute-b1-017' onclick="table_cell_click('compute-b1-017');" table='compute-b1-017'>&nbsp;</td>
+    <td id='tdc_l_compute-b1-018' onclick="table_cell_click('compute-b1-018');" table='compute-b1-018'>&nbsp;</td>
+    <td id='tdc_l_compute-b1-019' onclick="table_cell_click('compute-b1-019');" table='compute-b1-019'>&nbsp;</td>
+    <td id='tdc_l_compute-b1-020' onclick="table_cell_click('compute-b1-020');" table='compute-b1-020'>&nbsp;</td>
+    <td id='tdc_l_compute-b1-021' onclick="table_cell_click('compute-b1-021');" table='compute-b1-021'>&nbsp;</td>
+    <td id='tdc_l_compute-b1-022' onclick="table_cell_click('compute-b1-022');" table='compute-b1-022'>&nbsp;</td>
+    <td id='tdc_l_compute-b1-023' onclick="table_cell_click('compute-b1-023');" table='compute-b1-023'>&nbsp;</td>
+    <td id='tdc_l_compute-b1-024' onclick="table_cell_click('compute-b1-024');" table='compute-b1-024'>&nbsp;</td>
+    <td id='tdc_l_compute-b1-025' onclick="table_cell_click('compute-b1-025');" table='compute-b1-025'>&nbsp;</td>
+    </tr>
+    <tr>
+    <td id='tdc_l_compute-b1-026' onclick="table_cell_click('compute-b1-026');" table='compute-b1-026'>&nbsp;</td>
+    <td id='tdc_l_compute-b1-027' onclick="table_cell_click('compute-b1-027');" table='compute-b1-027'>&nbsp;</td>
+    <td id='tdc_l_compute-b1-028' onclick="table_cell_click('compute-b1-028');" table='compute-b1-028'>&nbsp;</td>
+    <td id='tdc_l_compute-b1-029' onclick="table_cell_click('compute-b1-029');" table='compute-b1-029'>&nbsp;</td>
+    <td id='tdc_l_compute-b1-030' onclick="table_cell_click('compute-b1-030');" table='compute-b1-030'>&nbsp;</td>
+    <td id='tdc_l_compute-b1-031' onclick="table_cell_click('compute-b1-031');" table='compute-b1-031'>&nbsp;</td>
+    <td id='tdc_l_compute-b1-032' onclick="table_cell_click('compute-b1-032');" table='compute-b1-032'>&nbsp;</td>
+    <td id='tdc_l_compute-b1-033' onclick="table_cell_click('compute-b1-033');" table='compute-b1-033'>&nbsp;</td>
+    <td id='tdc_l_compute-b1-034' onclick="table_cell_click('compute-b1-034');" table='compute-b1-034'>&nbsp;</td>
+    <td id='tdc_l_compute-gpu-b1-001' onclick="table_cell_click('compute-gpu-b1-001');" table='compute-gpu-b1-001'>&nbsp;</td>
+    <td id='tdc_l_compute-gpu-b1-002' onclick="table_cell_click('compute-gpu-b1-002');" table='compute-gpu-b1-002'>&nbsp;</td>
+    <td id='tdc_l_compute-gpu-b1-003' onclick="table_cell_click('compute-gpu-b1-003');" table='compute-gpu-b1-003'>&nbsp;</td>
+    <td id='tdc_l_compute-gpu-b1-004' onclick="table_cell_click('compute-gpu-b1-004');" table='compute-gpu-b1-004'>&nbsp;</td>
+    <td id='tdc_l_compute-b1-035' onclick="table_cell_click('compute-b1-035');" table='compute-b1-035'>&nbsp;</td>
+    <td id='tdc_l_compute-b1-036' onclick="table_cell_click('compute-b1-036');" table='compute-b1-036'>&nbsp;</td>
+    <td id='tdc_l_compute-b1-037' onclick="table_cell_click('compute-b1-037');" table='compute-b1-037'>&nbsp;</td>
+    <td id='tdc_l_compute-b1-038' onclick="table_cell_click('compute-b1-038');" table='compute-b1-038'>&nbsp;</td>
+    <td id='tdc_l_compute-b1-039' onclick="table_cell_click('compute-b1-039');" table='compute-b1-039'>&nbsp;</td>
+    <td id='tdc_l_compute-b1-040' onclick="table_cell_click('compute-b1-040');" table='compute-b1-040'>&nbsp;</td>
+    <td id='tdc_l_compute-b1-041' onclick="table_cell_click('compute-b1-041');" table='compute-b1-041'>&nbsp;</td>
+    <td id='tdc_l_compute-b1-042' onclick="table_cell_click('compute-b1-042');" table='compute-b1-042'>&nbsp;</td>
+    </tr>
+    <tr>
+    <td id='tdc_l_compute-b1-043' onclick="table_cell_click('compute-b1-043');" table='compute-b1-043'>&nbsp;</td>
+    <td id='tdc_l_compute-b1-044' onclick="table_cell_click('compute-b1-044');" table='compute-b1-044'>&nbsp;</td>
+    <td id='tdc_l_compute-b1-045' onclick="table_cell_click('compute-b1-045');" table='compute-b1-045'>&nbsp;</td>
+    <td id='tdc_l_compute-b1-046' onclick="table_cell_click('compute-b1-046');" table='compute-b1-046'>&nbsp;</td>
+    <td id='tdc_l_compute-b1-047' onclick="table_cell_click('compute-b1-047');" table='compute-b1-047'>&nbsp;</td>
+    <td id='tdc_l_compute-b1-048' onclick="table_cell_click('compute-b1-048');" table='compute-b1-048'>&nbsp;</td>
+    <td id='tdc_l_compute-b1-049' onclick="table_cell_click('compute-b1-049');" table='compute-b1-049'>&nbsp;</td>
+    <td id='tdc_l_compute-b1-050' onclick="table_cell_click('compute-b1-050');" table='compute-b1-050'>&nbsp;</td>
+    <td id='tdc_l_compute-b1-051' onclick="table_cell_click('compute-b1-051');" table='compute-b1-051'>&nbsp;</td>
+    <td id='tdc_l_compute-b1-052' onclick="table_cell_click('compute-b1-052');" table='compute-b1-052'>&nbsp;</td>
+    <td id='tdc_l_compute-b1-053' onclick="table_cell_click('compute-b1-053');" table='compute-b1-053'>&nbsp;</td>
+    <td id='tdc_l_compute-b1-054' onclick="table_cell_click('compute-b1-054');" table='compute-b1-054'>&nbsp;</td>
+    <td id='tdc_l_compute-b1-055' onclick="table_cell_click('compute-b1-055');" table='compute-b1-055'>&nbsp;</td>
+    <td id='tdc_l_compute-b1-056' onclick="table_cell_click('compute-b1-056');" table='compute-b1-056'>&nbsp;</td>
+    <td id='tdc_l_compute-b1-057' onclick="table_cell_click('compute-b1-057');" table='compute-b1-057'>&nbsp;</td>
+    <td id='tdc_l_compute-b1-058' onclick="table_cell_click('compute-b1-058');" table='compute-b1-058'>&nbsp;</td>
+    <td id='tdc_l_compute-b1-059' onclick="table_cell_click('compute-b1-059');" table='compute-b1-059'>&nbsp;</td>
+    <td id='tdc_l_compute-b1-060' onclick="table_cell_click('compute-b1-060');" table='compute-b1-060'>&nbsp;</td>
+    <td id='tdc_l_compute-b1-061' onclick="table_cell_click('compute-b1-061');" table='compute-b1-061'>&nbsp;</td>
+    <td id='tdc_l_compute-b1-062' onclick="table_cell_click('compute-b1-062');" table='compute-b1-062'>&nbsp;</td>
+    <td id='tdc_l_compute-b1-063' onclick="table_cell_click('compute-b1-063');" table='compute-b1-063'>&nbsp;</td>
+    </tr>
+    <tr>
+    <td id='tdc_l_compute-b1-064' onclick="table_cell_click('compute-b1-064');" table='compute-b1-064'>&nbsp;</td>
+    <td id='tdc_l_compute-b1-065' onclick="table_cell_click('compute-b1-065');" table='compute-b1-065'>&nbsp;</td>
+    <td id='tdc_l_compute-b1-066' onclick="table_cell_click('compute-b1-066');" table='compute-b1-066'>&nbsp;</td>
+    <td id='tdc_l_compute-b1-067' onclick="table_cell_click('compute-b1-067');" table='compute-b1-067'>&nbsp;</td>
+    <td id='tdc_l_compute-b1-068' onclick="table_cell_click('compute-b1-068');" table='compute-b1-068'>&nbsp;</td>
+    <td id='tdc_l_compute-gpu-b1-005' onclick="table_cell_click('compute-gpu-b1-005');" table='compute-gpu-b1-005'>&nbsp;</td>
+    <td id='tdc_l_compute-gpu-b1-006' onclick="table_cell_click('compute-gpu-b1-006');" table='compute-gpu-b1-006'>&nbsp;</td>
+    <td id='tdc_l_compute-gpu-b1-007' onclick="table_cell_click('compute-gpu-b1-007');" table='compute-gpu-b1-007'>&nbsp;</td>
+    <td id='tdc_l_compute-gpu-b1-008' onclick="table_cell_click('compute-gpu-b1-008');" table='compute-gpu-b1-008'>&nbsp;</td>
+    <td id='tdc_l_compute-c1-001' onclick="table_cell_click('compute-c1-001');" table='compute-c1-001'>&nbsp;</td>
+    <td id='tdc_l_compute-c1-002' onclick="table_cell_click('compute-c1-002');" table='compute-c1-002'>&nbsp;</td>
+    <td id='tdc_l_compute-c1-003' onclick="table_cell_click('compute-c1-003');" table='compute-c1-003'>&nbsp;</td>
+    <td id='tdc_l_compute-c1-004' onclick="table_cell_click('compute-c1-004');" table='compute-c1-004'>&nbsp;</td>
+    <td id='tdc_l_compute-c1-005' onclick="table_cell_click('compute-c1-005');" table='compute-c1-005'>&nbsp;</td>
+    <td id='tdc_l_compute-c1-006' onclick="table_cell_click('compute-c1-006');" table='compute-c1-006'>&nbsp;</td>
+    <td id='tdc_l_compute-c1-007' onclick="table_cell_click('compute-c1-007');" table='compute-c1-007'>&nbsp;</td>
+    <td id='tdc_l_compute-c1-008' onclick="table_cell_click('compute-c1-008');" table='compute-c1-008'>&nbsp;</td>
+    <td id='tdc_l_compute-c1-009' onclick="table_cell_click('compute-c1-009');" table='compute-c1-009'>&nbsp;</td>
+    <td id='tdc_l_compute-c1-010' onclick="table_cell_click('compute-c1-010');" table='compute-c1-010'>&nbsp;</td>
+    <td id='tdc_l_compute-c1-011' onclick="table_cell_click('compute-c1-011');" table='compute-c1-011'>&nbsp;</td>
+    <td id='tdc_l_compute-c1-012' onclick="table_cell_click('compute-c1-012');" table='compute-c1-012'>&nbsp;</td>
+    </tr>
+    <tr>
+    <td id='tdc_l_compute-c1-013' onclick="table_cell_click('compute-c1-013');" table='compute-c1-013'>&nbsp;</td>
+    <td id='tdc_l_compute-c1-014' onclick="table_cell_click('compute-c1-014');" table='compute-c1-014'>&nbsp;</td>
+    <td id='tdc_l_compute-c1-015' onclick="table_cell_click('compute-c1-015');" table='compute-c1-015'>&nbsp;</td>
+    <td id='tdc_l_compute-c1-016' onclick="table_cell_click('compute-c1-016');" table='compute-c1-016'>&nbsp;</td>
+    <td id='tdc_l_compute-c1-017' onclick="table_cell_click('compute-c1-017');" table='compute-c1-017'>&nbsp;</td>
+    <td id='tdc_l_compute-c1-018' onclick="table_cell_click('compute-c1-018');" table='compute-c1-018'>&nbsp;</td>
+    <td id='tdc_l_compute-c1-019' onclick="table_cell_click('compute-c1-019');" table='compute-c1-019'>&nbsp;</td>
+    <td id='tdc_l_compute-c1-020' onclick="table_cell_click('compute-c1-020');" table='compute-c1-020'>&nbsp;</td>
+    <td id='tdc_l_compute-c1-021' onclick="table_cell_click('compute-c1-021');" table='compute-c1-021'>&nbsp;</td>
+    <td id='tdc_l_compute-c1-022' onclick="table_cell_click('compute-c1-022');" table='compute-c1-022'>&nbsp;</td>
+    <td id='tdc_l_compute-c1-023' onclick="table_cell_click('compute-c1-023');" table='compute-c1-023'>&nbsp;</td>
+    <td id='tdc_l_compute-c1-024' onclick="table_cell_click('compute-c1-024');" table='compute-c1-024'>&nbsp;</td>
+    <td id='tdc_l_compute-c1-025' onclick="table_cell_click('compute-c1-025');" table='compute-c1-025'>&nbsp;</td>
+    <td id='tdc_l_compute-c1-026' onclick="table_cell_click('compute-c1-026');" table='compute-c1-026'>&nbsp;</td>
+    <td id='tdc_l_compute-c1-027' onclick="table_cell_click('compute-c1-027');" table='compute-c1-027'>&nbsp;</td>
+    <td id='tdc_l_compute-c1-028' onclick="table_cell_click('compute-c1-028');" table='compute-c1-028'>&nbsp;</td>
+    <td id='tdc_l_compute-gpu-c1-001' onclick="table_cell_click('compute-gpu-c1-001');" table='compute-gpu-c1-001'>&nbsp;</td>
+    <td id='tdc_l_compute-gpu-c1-002' onclick="table_cell_click('compute-gpu-c1-002');" table='compute-gpu-c1-002'>&nbsp;</td>
+    <td id='tdc_l_compute-cs-002' onclick="table_cell_click('compute-cs-002');" table='compute-cs-002'>&nbsp;</td>
+    <td id='tdc_l_compute-stats-002' onclick="table_cell_click('compute-stats-002');" table='compute-stats-002'>&nbsp;</td>
+    <td id='tdc_l_compute-stats-003' onclick="table_cell_click('compute-stats-003');" table='compute-stats-003'>&nbsp;</td>
+    </tr>
+    <tr>
+    <td id='tdc_l_compute-c1-059' onclick="table_cell_click('compute-c1-059');" table='compute-c1-059'>&nbsp;</td>
+    <td id='tdc_l_compute-c1-060' onclick="table_cell_click('compute-c1-060');" table='compute-c1-060'>&nbsp;</td>
+    <td id='tdc_l_compute-c1-029' onclick="table_cell_click('compute-c1-029');" table='compute-c1-029'>&nbsp;</td>
+    <td id='tdc_l_compute-c1-030' onclick="table_cell_click('compute-c1-030');" table='compute-c1-030'>&nbsp;</td>
+    <td id='tdc_l_compute-c1-031' onclick="table_cell_click('compute-c1-031');" table='compute-c1-031'>&nbsp;</td>
+    <td id='tdc_l_compute-c1-032' onclick="table_cell_click('compute-c1-032');" table='compute-c1-032'>&nbsp;</td>
+    <td id='tdc_l_compute-c1-033' onclick="table_cell_click('compute-c1-033');" table='compute-c1-033'>&nbsp;</td>
+    <td id='tdc_l_compute-c1-034' onclick="table_cell_click('compute-c1-034');" table='compute-c1-034'>&nbsp;</td>
+    <td id='tdc_l_compute-c1-035' onclick="table_cell_click('compute-c1-035');" table='compute-c1-035'>&nbsp;</td>
+    <td id='tdc_l_compute-c1-036' onclick="table_cell_click('compute-c1-036');" table='compute-c1-036'>&nbsp;</td>
+    <td id='tdc_l_compute-c1-037' onclick="table_cell_click('compute-c1-037');" table='compute-c1-037'>&nbsp;</td>
+    <td id='tdc_l_compute-c1-038' onclick="table_cell_click('compute-c1-038');" table='compute-c1-038'>&nbsp;</td>
+    <td id='tdc_l_compute-c1-039' onclick="table_cell_click('compute-c1-039');" table='compute-c1-039'>&nbsp;</td>
+    <td id='tdc_l_compute-c1-040' onclick="table_cell_click('compute-c1-040');" table='compute-c1-040'>&nbsp;</td>
+    <td id='tdc_l_compute-c1-041' onclick="table_cell_click('compute-c1-041');" table='compute-c1-041'>&nbsp;</td>
+    <td id='tdc_l_compute-c1-042' onclick="table_cell_click('compute-c1-042');" table='compute-c1-042'>&nbsp;</td>
+    <td id='tdc_l_compute-c1-043' onclick="table_cell_click('compute-c1-043');" table='compute-c1-043'>&nbsp;</td>
+    <td id='tdc_l_compute-c1-044' onclick="table_cell_click('compute-c1-044');" table='compute-c1-044'>&nbsp;</td>
+    <td id='tdc_l_compute-c1-045' onclick="table_cell_click('compute-c1-045');" table='compute-c1-045'>&nbsp;</td>
+    <td id='tdc_l_compute-c1-046' onclick="table_cell_click('compute-c1-046');" table='compute-c1-046'>&nbsp;</td>
+    <td id='tdc_l_compute-c1-047' onclick="table_cell_click('compute-c1-047');" table='compute-c1-047'>&nbsp;</td>
+    </tr>
+    <tr>
+    <td id='tdc_l_compute-c1-048' onclick="table_cell_click('compute-c1-048');" table='compute-c1-048'>&nbsp;</td>
+    <td id='tdc_l_compute-c1-049' onclick="table_cell_click('compute-c1-049');" table='compute-c1-049'>&nbsp;</td>
+    <td id='tdc_l_compute-c1-050' onclick="table_cell_click('compute-c1-050');" table='compute-c1-050'>&nbsp;</td>
+    <td id='tdc_l_compute-c1-051' onclick="table_cell_click('compute-c1-051');" table='compute-c1-051'>&nbsp;</td>
+    <td id='tdc_l_compute-c1-052' onclick="table_cell_click('compute-c1-052');" table='compute-c1-052'>&nbsp;</td>
+    <td id='tdc_l_compute-c1-053' onclick="table_cell_click('compute-c1-053');" table='compute-c1-053'>&nbsp;</td>
+    <td id='tdc_l_compute-c1-054' onclick="table_cell_click('compute-c1-054');" table='compute-c1-054'>&nbsp;</td>
+    <td id='tdc_l_compute-c1-055' onclick="table_cell_click('compute-c1-055');" table='compute-c1-055'>&nbsp;</td>
+    <td id='tdc_l_compute-c1-056' onclick="table_cell_click('compute-c1-056');" table='compute-c1-056'>&nbsp;</td>
+    <td id='tdc_l_compute-gpu-c1-003' onclick="table_cell_click('compute-gpu-c1-003');" table='compute-gpu-c1-003'>&nbsp;</td>
+    <td id='tdc_l_compute-gpu-c1-004' onclick="table_cell_click('compute-gpu-c1-004');" table='compute-gpu-c1-004'>&nbsp;</td>
+    <td id='tdc_l_compute-stats-004' onclick="table_cell_click('compute-stats-004');" table='compute-stats-004'>&nbsp;</td>
+    <td id='tdc_l_compute-stats-005' onclick="table_cell_click('compute-stats-005');" table='compute-stats-005'>&nbsp;</td>
+    <td id='tdc_l_compute-c1-057' onclick="table_cell_click('compute-c1-057');" table='compute-c1-057'>&nbsp;</td>
+    <td id='tdc_l_compute-c1-058' onclick="table_cell_click('compute-c1-058');" table='compute-c1-058'>&nbsp;</td>
+    <td id='tdc_l_compute-cs-003' onclick="table_cell_click('compute-cs-003');" table='compute-cs-003'>&nbsp;</td>
+    <td id='tdc_l_compute-physics-001' onclick="table_cell_click('compute-physics-001');" table='compute-physics-001'>&nbsp;</td>
+    <td id='tdc_l_compute-d1-001' onclick="table_cell_click('compute-d1-001');" table='compute-d1-001'>&nbsp;</td>
+    <td id='tdc_l_compute-d1-002' onclick="table_cell_click('compute-d1-002');" table='compute-d1-002'>&nbsp;</td>
+    <td id='tdc_l_compute-d1-003' onclick="table_cell_click('compute-d1-003');" table='compute-d1-003'>&nbsp;</td>
+    <td id='tdc_l_compute-d1-004' onclick="table_cell_click('compute-d1-004');" table='compute-d1-004'>&nbsp;</td>
+    </tr>
+    <tr>
+    <td id='tdc_l_compute-d1-005' onclick="table_cell_click('compute-d1-005');" table='compute-d1-005'>&nbsp;</td>
+    <td id='tdc_l_compute-d1-006' onclick="table_cell_click('compute-d1-006');" table='compute-d1-006'>&nbsp;</td>
+    <td id='tdc_l_compute-d1-007' onclick="table_cell_click('compute-d1-007');" table='compute-d1-007'>&nbsp;</td>
+    <td id='tdc_l_compute-d1-008' onclick="table_cell_click('compute-d1-008');" table='compute-d1-008'>&nbsp;</td>
+    <td id='tdc_l_compute-d1-009' onclick="table_cell_click('compute-d1-009');" table='compute-d1-009'>&nbsp;</td>
+    <td id='tdc_l_compute-d1-010' onclick="table_cell_click('compute-d1-010');" table='compute-d1-010'>&nbsp;</td>
+    <td id='tdc_l_compute-d1-011' onclick="table_cell_click('compute-d1-011');" table='compute-d1-011'>&nbsp;</td>
+    <td id='tdc_l_compute-d1-012' onclick="table_cell_click('compute-d1-012');" table='compute-d1-012'>&nbsp;</td>
+    <td id='tdc_l_compute-d1-013' onclick="table_cell_click('compute-d1-013');" table='compute-d1-013'>&nbsp;</td>
+    <td id='tdc_l_compute-d1-014' onclick="table_cell_click('compute-d1-014');" table='compute-d1-014'>&nbsp;</td>
+    <td id='tdc_l_compute-d1-015' onclick="table_cell_click('compute-d1-015');" table='compute-d1-015'>&nbsp;</td>
+    <td id='tdc_l_compute-d1-016' onclick="table_cell_click('compute-d1-016');" table='compute-d1-016'>&nbsp;</td>
+    <td id='tdc_l_compute-d1-017' onclick="table_cell_click('compute-d1-017');" table='compute-d1-017'>&nbsp;</td>
+    <td id='tdc_l_compute-d1-018' onclick="table_cell_click('compute-d1-018');" table='compute-d1-018'>&nbsp;</td>
+    <td id='tdc_l_compute-d1-019' onclick="table_cell_click('compute-d1-019');" table='compute-d1-019'>&nbsp;</td>
+    <td id='tdc_l_compute-d1-020' onclick="table_cell_click('compute-d1-020');" table='compute-d1-020'>&nbsp;</td>
+    <td id='tdc_l_compute-d1-021' onclick="table_cell_click('compute-d1-021');" table='compute-d1-021'>&nbsp;</td>
+    <td id='tdc_l_compute-d1-022' onclick="table_cell_click('compute-d1-022');" table='compute-d1-022'>&nbsp;</td>
+    <td id='tdc_l_compute-d1-023' onclick="table_cell_click('compute-d1-023');" table='compute-d1-023'>&nbsp;</td>
+    <td id='tdc_l_compute-d1-024' onclick="table_cell_click('compute-d1-024');" table='compute-d1-024'>&nbsp;</td>
+    <td id='tdc_l_compute-d1-025' onclick="table_cell_click('compute-d1-025');" table='compute-d1-025'>&nbsp;</td>
+    </tr>
+    <tr>
+    <td id='tdc_l_compute-d1-026' onclick="table_cell_click('compute-d1-026');" table='compute-d1-026'>&nbsp;</td>
+    <td id='tdc_l_compute-d1-027' onclick="table_cell_click('compute-d1-027');" table='compute-d1-027'>&nbsp;</td>
+    <td id='tdc_l_compute-d1-028' onclick="table_cell_click('compute-d1-028');" table='compute-d1-028'>&nbsp;</td>
+    <td id='tdc_l_compute-d1-029' onclick="table_cell_click('compute-d1-029');" table='compute-d1-029'>&nbsp;</td>
+    <td id='tdc_l_compute-d1-030' onclick="table_cell_click('compute-d1-030');" table='compute-d1-030'>&nbsp;</td>
+    <td id='tdc_l_compute-d1-031' onclick="table_cell_click('compute-d1-031');" table='compute-d1-031'>&nbsp;</td>
+    <td id='tdc_l_compute-d1-032' onclick="table_cell_click('compute-d1-032');" table='compute-d1-032'>&nbsp;</td>
+    <td id='tdc_l_compute-d1-033' onclick="table_cell_click('compute-d1-033');" table='compute-d1-033'>&nbsp;</td>
+    <td id='tdc_l_compute-d1-034' onclick="table_cell_click('compute-d1-034');" table='compute-d1-034'>&nbsp;</td>
+    <td id='tdc_l_compute-d1-035' onclick="table_cell_click('compute-d1-035');" table='compute-d1-035'>&nbsp;</td>
+    <td id='tdc_l_compute-d1-036' onclick="table_cell_click('compute-d1-036');" table='compute-d1-036'>&nbsp;</td>
+    <td id='tdc_l_compute-gpu-d1-001' onclick="table_cell_click('compute-gpu-d1-001');" table='compute-gpu-d1-001'>&nbsp;</td>
+    <td id='tdc_l_compute-gpu-d1-002' onclick="table_cell_click('compute-gpu-d1-002');" table='compute-gpu-d1-002'>&nbsp;</td>
+    <td id='tdc_l_compute-phi-d1-001' onclick="table_cell_click('compute-phi-d1-001');" table='compute-phi-d1-001'>&nbsp;</td>
+    <td id='tdc_l_compute-d1-037' onclick="table_cell_click('compute-d1-037');" table='compute-d1-037'>&nbsp;</td>
+    <td id='tdc_l_compute-d1-038' onclick="table_cell_click('compute-d1-038');" table='compute-d1-038'>&nbsp;</td>
+    <td id='tdc_l_compute-d1-039' onclick="table_cell_click('compute-d1-039');" table='compute-d1-039'>&nbsp;</td>
+    <td id='tdc_l_compute-d1-040' onclick="table_cell_click('compute-d1-040');" table='compute-d1-040'>&nbsp;</td>
+    <td id='tdc_l_compute-d1-041' onclick="table_cell_click('compute-d1-041');" table='compute-d1-041'>&nbsp;</td>
+    <td id='tdc_l_compute-d1-042' onclick="table_cell_click('compute-d1-042');" table='compute-d1-042'>&nbsp;</td>
+    <td id='tdc_l_compute-d1-043' onclick="table_cell_click('compute-d1-043');" table='compute-d1-043'>&nbsp;</td>
+    </tr>
+    <tr>
+    <td id='tdc_l_compute-d1-044' onclick="table_cell_click('compute-d1-044');" table='compute-d1-044'>&nbsp;</td>
+    <td id='tdc_l_compute-d1-045' onclick="table_cell_click('compute-d1-045');" table='compute-d1-045'>&nbsp;</td>
+    <td id='tdc_l_compute-d1-046' onclick="table_cell_click('compute-d1-046');" table='compute-d1-046'>&nbsp;</td>
+    <td id='tdc_l_compute-d1-047' onclick="table_cell_click('compute-d1-047');" table='compute-d1-047'>&nbsp;</td>
+    <td id='tdc_l_compute-d1-048' onclick="table_cell_click('compute-d1-048');" table='compute-d1-048'>&nbsp;</td>
+    <td id='tdc_l_compute-d1-049' onclick="table_cell_click('compute-d1-049');" table='compute-d1-049'>&nbsp;</td>
+    <td id='tdc_l_compute-d1-050' onclick="table_cell_click('compute-d1-050');" table='compute-d1-050'>&nbsp;</td>
+    <td id='tdc_l_compute-d1-051' onclick="table_cell_click('compute-d1-051');" table='compute-d1-051'>&nbsp;</td>
+    <td id='tdc_l_compute-d1-052' onclick="table_cell_click('compute-d1-052');" table='compute-d1-052'>&nbsp;</td>
+    <td id='tdc_l_compute-d1-053' onclick="table_cell_click('compute-d1-053');" table='compute-d1-053'>&nbsp;</td>
+    <td id='tdc_l_compute-d1-054' onclick="table_cell_click('compute-d1-054');" table='compute-d1-054'>&nbsp;</td>
+    <td id='tdc_l_compute-d1-055' onclick="table_cell_click('compute-d1-055');" table='compute-d1-055'>&nbsp;</td>
+    <td id='tdc_l_compute-d1-056' onclick="table_cell_click('compute-d1-056');" table='compute-d1-056'>&nbsp;</td>
+    <td id='tdc_l_compute-d1-057' onclick="table_cell_click('compute-d1-057');" table='compute-d1-057'>&nbsp;</td>
+    <td id='tdc_l_compute-d1-058' onclick="table_cell_click('compute-d1-058');" table='compute-d1-058'>&nbsp;</td>
+    <td id='tdc_l_compute-d1-059' onclick="table_cell_click('compute-d1-059');" table='compute-d1-059'>&nbsp;</td>
+    <td id='tdc_l_compute-d1-060' onclick="table_cell_click('compute-d1-060');" table='compute-d1-060'>&nbsp;</td>
+    <td id='tdc_l_compute-d1-061' onclick="table_cell_click('compute-d1-061');" table='compute-d1-061'>&nbsp;</td>
+    <td id='tdc_l_compute-d1-062' onclick="table_cell_click('compute-d1-062');" table='compute-d1-062'>&nbsp;</td>
+    <td id='tdc_l_compute-d1-063' onclick="table_cell_click('compute-d1-063');" table='compute-d1-063'>&nbsp;</td>
+    <td id='tdc_l_compute-d1-064' onclick="table_cell_click('compute-d1-064');" table='compute-d1-064'>&nbsp;</td>
+    </tr>
+    <tr>
+    <td id='tdc_l_compute-d1-065' onclick="table_cell_click('compute-d1-065');" table='compute-d1-065'>&nbsp;</td>
+    <td id='tdc_l_compute-d1-066' onclick="table_cell_click('compute-d1-066');" table='compute-d1-066'>&nbsp;</td>
+    <td id='tdc_l_compute-d1-067' onclick="table_cell_click('compute-d1-067');" table='compute-d1-067'>&nbsp;</td>
+    <td id='tdc_l_compute-d1-068' onclick="table_cell_click('compute-d1-068');" table='compute-d1-068'>&nbsp;</td>
+    <td id='tdc_l_compute-d1-069' onclick="table_cell_click('compute-d1-069');" table='compute-d1-069'>&nbsp;</td>
+    <td id='tdc_l_compute-d1-070' onclick="table_cell_click('compute-d1-070');" table='compute-d1-070'>&nbsp;</td>
+    <td id='tdc_l_compute-gpu-d1-003' onclick="table_cell_click('compute-gpu-d1-003');" table='compute-gpu-d1-003'>&nbsp;</td>
+    <td id='tdc_l_compute-gpu-d1-004' onclick="table_cell_click('compute-gpu-d1-004');" table='compute-gpu-d1-004'>&nbsp;</td>
+    <td id='tdc_l_compute-gpu-d1-005' onclick="table_cell_click('compute-gpu-d1-005');" table='compute-gpu-d1-005'>&nbsp;</td>
+    <td id='tdc_l_compute-phi-d1-002' onclick="table_cell_click('compute-phi-d1-002');" table='compute-phi-d1-002'>&nbsp;</td>
+    <td id='tdc_l_compute-e1-001' onclick="table_cell_click('compute-e1-001');" table='compute-e1-001'>&nbsp;</td>
+    <td id='tdc_l_compute-e1-002' onclick="table_cell_click('compute-e1-002');" table='compute-e1-002'>&nbsp;</td>
+    <td id='tdc_l_compute-e1-003' onclick="table_cell_click('compute-e1-003');" table='compute-e1-003'>&nbsp;</td>
+    <td id='tdc_l_compute-e1-004' onclick="table_cell_click('compute-e1-004');" table='compute-e1-004'>&nbsp;</td>
+    <td id='tdc_l_compute-e1-005' onclick="table_cell_click('compute-e1-005');" table='compute-e1-005'>&nbsp;</td>
+    <td id='tdc_l_compute-e1-006' onclick="table_cell_click('compute-e1-006');" table='compute-e1-006'>&nbsp;</td>
+    <td id='tdc_l_compute-e1-007' onclick="table_cell_click('compute-e1-007');" table='compute-e1-007'>&nbsp;</td>
+    <td id='tdc_l_compute-e1-008' onclick="table_cell_click('compute-e1-008');" table='compute-e1-008'>&nbsp;</td>
+    <td id='tdc_l_compute-e1-009' onclick="table_cell_click('compute-e1-009');" table='compute-e1-009'>&nbsp;</td>
+    <td id='tdc_l_compute-e1-010' onclick="table_cell_click('compute-e1-010');" table='compute-e1-010'>&nbsp;</td>
+    <td id='tdc_l_compute-e1-011' onclick="table_cell_click('compute-e1-011');" table='compute-e1-011'>&nbsp;</td>
+    </tr>
+    <tr>
+    <td id='tdc_l_compute-e1-012' onclick="table_cell_click('compute-e1-012');" table='compute-e1-012'>&nbsp;</td>
+    <td id='tdc_l_compute-e1-013' onclick="table_cell_click('compute-e1-013');" table='compute-e1-013'>&nbsp;</td>
+    <td id='tdc_l_compute-e1-014' onclick="table_cell_click('compute-e1-014');" table='compute-e1-014'>&nbsp;</td>
+    <td id='tdc_l_compute-e1-015' onclick="table_cell_click('compute-e1-015');" table='compute-e1-015'>&nbsp;</td>
+    <td id='tdc_l_compute-e1-016' onclick="table_cell_click('compute-e1-016');" table='compute-e1-016'>&nbsp;</td>
+    <td id='tdc_l_compute-e1-017' onclick="table_cell_click('compute-e1-017');" table='compute-e1-017'>&nbsp;</td>
+    <td id='tdc_l_compute-e1-018' onclick="table_cell_click('compute-e1-018');" table='compute-e1-018'>&nbsp;</td>
+    <td id='tdc_l_compute-e1-019' onclick="table_cell_click('compute-e1-019');" table='compute-e1-019'>&nbsp;</td>
+    <td id='tdc_l_compute-e1-020' onclick="table_cell_click('compute-e1-020');" table='compute-e1-020'>&nbsp;</td>
+    <td id='tdc_l_compute-e1-021' onclick="table_cell_click('compute-e1-021');" table='compute-e1-021'>&nbsp;</td>
+    <td id='tdc_l_compute-e1-022' onclick="table_cell_click('compute-e1-022');" table='compute-e1-022'>&nbsp;</td>
+    <td id='tdc_l_compute-e1-045' onclick="table_cell_click('compute-e1-045');" table='compute-e1-045'>&nbsp;</td>
+    <td id='tdc_l_compute-e1-046' onclick="table_cell_click('compute-e1-046');" table='compute-e1-046'>&nbsp;</td>
+    <td id='tdc_l_compute-e1-047' onclick="table_cell_click('compute-e1-047');" table='compute-e1-047'>&nbsp;</td>
+    <td id='tdc_l_compute-e1-048' onclick="table_cell_click('compute-e1-048');" table='compute-e1-048'>&nbsp;</td>
+    <td id='tdc_l_compute-e1-049' onclick="table_cell_click('compute-e1-049');" table='compute-e1-049'>&nbsp;</td>
+    <td id='tdc_l_compute-e1-050' onclick="table_cell_click('compute-e1-050');" table='compute-e1-050'>&nbsp;</td>
+    <td id='tdc_l_compute-e1-051' onclick="table_cell_click('compute-e1-051');" table='compute-e1-051'>&nbsp;</td>
+    <td id='tdc_l_compute-e1-052' onclick="table_cell_click('compute-e1-052');" table='compute-e1-052'>&nbsp;</td>
+    <td id='tdc_l_compute-e1-053' onclick="table_cell_click('compute-e1-053');" table='compute-e1-053'>&nbsp;</td>
+    <td id='tdc_l_compute-e1-054' onclick="table_cell_click('compute-e1-054');" table='compute-e1-054'>&nbsp;</td>
+    </tr>
+    <tr>
+    <td id='tdc_l_compute-e1-055' onclick="table_cell_click('compute-e1-055');" table='compute-e1-055'>&nbsp;</td>
+    <td id='tdc_l_compute-e1-056' onclick="table_cell_click('compute-e1-056');" table='compute-e1-056'>&nbsp;</td>
+    <td id='tdc_l_compute-e1-057' onclick="table_cell_click('compute-e1-057');" table='compute-e1-057'>&nbsp;</td>
+    <td id='tdc_l_compute-e1-058' onclick="table_cell_click('compute-e1-058');" table='compute-e1-058'>&nbsp;</td>
+    <td id='tdc_l_compute-e1-059' onclick="table_cell_click('compute-e1-059');" table='compute-e1-059'>&nbsp;</td>
+    <td id='tdc_l_compute-e1-060' onclick="table_cell_click('compute-e1-060');" table='compute-e1-060'>&nbsp;</td>
+    <td id='tdc_l_compute-e1-061' onclick="table_cell_click('compute-e1-061');" table='compute-e1-061'>&nbsp;</td>
+    <td id='tdc_l_compute-e1-062' onclick="table_cell_click('compute-e1-062');" table='compute-e1-062'>&nbsp;</td>
+    <td id='tdc_l_compute-e1-023' onclick="table_cell_click('compute-e1-023');" table='compute-e1-023'>&nbsp;</td>
+    <td id='tdc_l_compute-e1-024' onclick="table_cell_click('compute-e1-024');" table='compute-e1-024'>&nbsp;</td>
+    <td id='tdc_l_compute-e1-025' onclick="table_cell_click('compute-e1-025');" table='compute-e1-025'>&nbsp;</td>
+    <td id='tdc_l_compute-e1-026' onclick="table_cell_click('compute-e1-026');" table='compute-e1-026'>&nbsp;</td>
+    <td id='tdc_l_compute-e1-027' onclick="table_cell_click('compute-e1-027');" table='compute-e1-027'>&nbsp;</td>
+    <td id='tdc_l_compute-e1-028' onclick="table_cell_click('compute-e1-028');" table='compute-e1-028'>&nbsp;</td>
+    <td id='tdc_l_compute-e1-029' onclick="table_cell_click('compute-e1-029');" table='compute-e1-029'>&nbsp;</td>
+    <td id='tdc_l_compute-e1-030' onclick="table_cell_click('compute-e1-030');" table='compute-e1-030'>&nbsp;</td>
+    <td id='tdc_l_compute-e1-031' onclick="table_cell_click('compute-e1-031');" table='compute-e1-031'>&nbsp;</td>
+    <td id='tdc_l_compute-e1-032' onclick="table_cell_click('compute-e1-032');" table='compute-e1-032'>&nbsp;</td>
+    <td id='tdc_l_compute-e1-033' onclick="table_cell_click('compute-e1-033');" table='compute-e1-033'>&nbsp;</td>
+    <td id='tdc_l_compute-e1-034' onclick="table_cell_click('compute-e1-034');" table='compute-e1-034'>&nbsp;</td>
+    <td id='tdc_l_compute-e1-035' onclick="table_cell_click('compute-e1-035');" table='compute-e1-035'>&nbsp;</td>
+    </tr>
+    <tr>
+    <td id='tdc_l_compute-e1-036' onclick="table_cell_click('compute-e1-036');" table='compute-e1-036'>&nbsp;</td>
+    <td id='tdc_l_compute-e1-037' onclick="table_cell_click('compute-e1-037');" table='compute-e1-037'>&nbsp;</td>
+    <td id='tdc_l_compute-e1-038' onclick="table_cell_click('compute-e1-038');" table='compute-e1-038'>&nbsp;</td>
+    <td id='tdc_l_compute-e1-039' onclick="table_cell_click('compute-e1-039');" table='compute-e1-039'>&nbsp;</td>
+    <td id='tdc_l_compute-e1-040' onclick="table_cell_click('compute-e1-040');" table='compute-e1-040'>&nbsp;</td>
+    <td id='tdc_l_compute-e1-041' onclick="table_cell_click('compute-e1-041');" table='compute-e1-041'>&nbsp;</td>
+    <td id='tdc_l_compute-e1-042' onclick="table_cell_click('compute-e1-042');" table='compute-e1-042'>&nbsp;</td>
+    <td id='tdc_l_compute-e1-043' onclick="table_cell_click('compute-e1-043');" table='compute-e1-043'>&nbsp;</td>
+    <td id='tdc_l_compute-e1-044' onclick="table_cell_click('compute-e1-044');" table='compute-e1-044'>&nbsp;</td>
+    <td id='tdc_l_compute-e1-063' onclick="table_cell_click('compute-e1-063');" table='compute-e1-063'>&nbsp;</td>
+    <td id='tdc_l_compute-e1-064' onclick="table_cell_click('compute-e1-064');" table='compute-e1-064'>&nbsp;</td>
+    <td id='tdc_l_compute-e1-065' onclick="table_cell_click('compute-e1-065');" table='compute-e1-065'>&nbsp;</td>
+    <td id='tdc_l_compute-e1-066' onclick="table_cell_click('compute-e1-066');" table='compute-e1-066'>&nbsp;</td>
+    <td id='tdc_l_compute-e1-067' onclick="table_cell_click('compute-e1-067');" table='compute-e1-067'>&nbsp;</td>
+    <td id='tdc_l_compute-e1-068' onclick="table_cell_click('compute-e1-068');" table='compute-e1-068'>&nbsp;</td>
+    <td id='tdc_l_compute-e1-069' onclick="table_cell_click('compute-e1-069');" table='compute-e1-069'>&nbsp;</td>
+    <td id='tdc_l_compute-e1-070' onclick="table_cell_click('compute-e1-070');" table='compute-e1-070'>&nbsp;</td>
+    <td id='tdc_l_compute-e1-071' onclick="table_cell_click('compute-e1-071');" table='compute-e1-071'>&nbsp;</td>
+    <td id='tdc_l_compute-e1-072' onclick="table_cell_click('compute-e1-072');" table='compute-e1-072'>&nbsp;</td>
+    <td id='tdc_l_compute-e1-073' onclick="table_cell_click('compute-e1-073');" table='compute-e1-073'>&nbsp;</td>
+    <td id='tdc_l_compute-e1-074' onclick="table_cell_click('compute-e1-074');" table='compute-e1-074'>&nbsp;</td>
+    </tr>
+    <tr>
+    <td id='tdc_l_compute-e1-075' onclick="table_cell_click('compute-e1-075');" table='compute-e1-075'>&nbsp;</td>
+    <td id='tdc_l_compute-e1-076' onclick="table_cell_click('compute-e1-076');" table='compute-e1-076'>&nbsp;</td>
+    <td id='tdc_l_compute-e1-077' onclick="table_cell_click('compute-e1-077');" table='compute-e1-077'>&nbsp;</td>
+    <td id='tdc_l_compute-e1-078' onclick="table_cell_click('compute-e1-078');" table='compute-e1-078'>&nbsp;</td>
+    <td id='tdc_l_compute-e1-079' onclick="table_cell_click('compute-e1-079');" table='compute-e1-079'>&nbsp;</td>
+    <td id='tdc_l_compute-e1-080' onclick="table_cell_click('compute-e1-080');" table='compute-e1-080'>&nbsp;</td>
+    <td id='tdc_l_compute-e1-081' onclick="table_cell_click('compute-e1-081');" table='compute-e1-081'>&nbsp;</td>
+    <td id='tdc_l_compute-e1-082' onclick="table_cell_click('compute-e1-082');" table='compute-e1-082'>&nbsp;</td>
+    <td id='tdc_l_compute-bigmem-001' onclick="table_cell_click('compute-bigmem-001');" table='compute-bigmem-001'>&nbsp;</td>
+    <td id='tdc_l_compute-bigmem-003' onclick="table_cell_click('compute-bigmem-003');" table='compute-bigmem-003'>&nbsp;</td>
+    <td id='tdc_l_compute-bigmem-004' onclick="table_cell_click('compute-bigmem-004');" table='compute-bigmem-004'>&nbsp;</td>
+    <td id='tdc_l_compute-cs-001' onclick="table_cell_click('compute-cs-001');" table='compute-cs-001'>&nbsp;</td>
+    <td id='tdc_l_compute-chem-001' onclick="table_cell_click('compute-chem-001');" table='compute-chem-001'>&nbsp;</td>
+    <td id='tdc_l_compute-fmhs-001' onclick="table_cell_click('compute-fmhs-001');" table='compute-fmhs-001'>&nbsp;</td>
+    <td id='tdc_l_compute-bigmem-002' onclick="table_cell_click('compute-bigmem-002');" table='compute-bigmem-002'>&nbsp;</td>
+    <td class=empty>&nbsp;</td>
+    <td class=empty>&nbsp;</td>
+    <td class=empty>&nbsp;</td>
+    <td class=empty>&nbsp;</td>
+    <td class=empty>&nbsp;</td>
+    <td class=empty>&nbsp;</td>
+    </tr>
+    <tr><th colspan=21 align='right' id='tdc_l_date_stamp'>&nbsp;</th></tr>
+    </table>
+    </td>
+    <td>
+      <table id='tdc_m' class='rack'>
+      <tr><th colspan=21 align='right'>
+        <select id="tdc_m_view" onchange="recolor()">
+          <option value="cpusdeviation">CPU cores: discrepancy used vs requested</option>
+          <option value="cpusreq" selected>CPU cores: requested usage</option>
+          <option value="cpusused">CPU cores: actual usage</option>
+          <option value="memdeviation">Memory: discrepancy used vs requested</option>
+          <option value="memreq">Memory: requested usage</option>
+          <option value="memused">Memory: actual usage</option>
+        </select>
+      </th></tr>
+      <tr>
+      <td id='tdc_m_compute-a1-001' onclick="table_cell_click('compute-a1-001');" table='compute-a1-001'>&nbsp;</td>
+      <td id='tdc_m_compute-a1-002' onclick="table_cell_click('compute-a1-002');" table='compute-a1-002'>&nbsp;</td>
+      <td id='tdc_m_compute-a1-003' onclick="table_cell_click('compute-a1-003');" table='compute-a1-003'>&nbsp;</td>
+      <td id='tdc_m_compute-a1-004' onclick="table_cell_click('compute-a1-004');" table='compute-a1-004'>&nbsp;</td>
+      <td id='tdc_m_compute-a1-005' onclick="table_cell_click('compute-a1-005');" table='compute-a1-005'>&nbsp;</td>
+      <td id='tdc_m_compute-a1-006' onclick="table_cell_click('compute-a1-006');" table='compute-a1-006'>&nbsp;</td>
+      <td id='tdc_m_compute-a1-007' onclick="table_cell_click('compute-a1-007');" table='compute-a1-007'>&nbsp;</td>
+      <td id='tdc_m_compute-a1-008' onclick="table_cell_click('compute-a1-008');" table='compute-a1-008'>&nbsp;</td>
+      <td id='tdc_m_compute-a1-009' onclick="table_cell_click('compute-a1-009');" table='compute-a1-009'>&nbsp;</td>
+      <td id='tdc_m_compute-a1-010' onclick="table_cell_click('compute-a1-010');" table='compute-a1-010'>&nbsp;</td>
+      <td id='tdc_m_compute-a1-011' onclick="table_cell_click('compute-a1-011');" table='compute-a1-011'>&nbsp;</td>
+      <td id='tdc_m_compute-a1-012' onclick="table_cell_click('compute-a1-012');" table='compute-a1-012'>&nbsp;</td>
+      <td id='tdc_m_compute-a1-013' onclick="table_cell_click('compute-a1-013');" table='compute-a1-013'>&nbsp;</td>
+      <td id='tdc_m_compute-a1-014' onclick="table_cell_click('compute-a1-014');" table='compute-a1-014'>&nbsp;</td>
+      <td id='tdc_m_compute-a1-015' onclick="table_cell_click('compute-a1-015');" table='compute-a1-015'>&nbsp;</td>
+      <td id='tdc_m_compute-a1-016' onclick="table_cell_click('compute-a1-016');" table='compute-a1-016'>&nbsp;</td>
+      <td id='tdc_m_compute-a1-017' onclick="table_cell_click('compute-a1-017');" table='compute-a1-017'>&nbsp;</td>
+      <td id='tdc_m_compute-a1-018' onclick="table_cell_click('compute-a1-018');" table='compute-a1-018'>&nbsp;</td>
+      <td id='tdc_m_compute-a1-019' onclick="table_cell_click('compute-a1-019');" table='compute-a1-019'>&nbsp;</td>
+      <td id='tdc_m_compute-a1-020' onclick="table_cell_click('compute-a1-020');" table='compute-a1-020'>&nbsp;</td>
+      <td id='tdc_m_compute-a1-021' onclick="table_cell_click('compute-a1-021');" table='compute-a1-021'>&nbsp;</td>
+      </tr>
+      <tr>
+      <td id='tdc_m_compute-a1-022' onclick="table_cell_click('compute-a1-022');" table='compute-a1-022'>&nbsp;</td>
+      <td id='tdc_m_compute-a1-023' onclick="table_cell_click('compute-a1-023');" table='compute-a1-023'>&nbsp;</td>
+      <td id='tdc_m_compute-a1-024' onclick="table_cell_click('compute-a1-024');" table='compute-a1-024'>&nbsp;</td>
+      <td id='tdc_m_compute-a1-025' onclick="table_cell_click('compute-a1-025');" table='compute-a1-025'>&nbsp;</td>
+      <td id='tdc_m_compute-a1-026' onclick="table_cell_click('compute-a1-026');" table='compute-a1-026'>&nbsp;</td>
+      <td id='tdc_m_compute-a1-027' onclick="table_cell_click('compute-a1-027');" table='compute-a1-027'>&nbsp;</td>
+      <td id='tdc_m_compute-a1-028' onclick="table_cell_click('compute-a1-028');" table='compute-a1-028'>&nbsp;</td>
+      <td id='tdc_m_compute-a1-029' onclick="table_cell_click('compute-a1-029');" table='compute-a1-029'>&nbsp;</td>
+      <td id='tdc_m_compute-a1-030' onclick="table_cell_click('compute-a1-030');" table='compute-a1-030'>&nbsp;</td>
+      <td id='tdc_m_compute-a1-031' onclick="table_cell_click('compute-a1-031');" table='compute-a1-031'>&nbsp;</td>
+      <td id='tdc_m_compute-a1-032' onclick="table_cell_click('compute-a1-032');" table='compute-a1-032'>&nbsp;</td>
+      <td id='tdc_m_compute-a1-033' onclick="table_cell_click('compute-a1-033');" table='compute-a1-033'>&nbsp;</td>
+      <td id='tdc_m_compute-a1-034' onclick="table_cell_click('compute-a1-034');" table='compute-a1-034'>&nbsp;</td>
+      <td id='tdc_m_compute-a1-035' onclick="table_cell_click('compute-a1-035');" table='compute-a1-035'>&nbsp;</td>
+      <td id='tdc_m_compute-a1-036' onclick="table_cell_click('compute-a1-036');" table='compute-a1-036'>&nbsp;</td>
+      <td id='tdc_m_compute-a1-037' onclick="table_cell_click('compute-a1-037');" table='compute-a1-037'>&nbsp;</td>
+      <td id='tdc_m_compute-a1-038' onclick="table_cell_click('compute-a1-038');" table='compute-a1-038'>&nbsp;</td>
+      <td id='tdc_m_compute-a1-039' onclick="table_cell_click('compute-a1-039');" table='compute-a1-039'>&nbsp;</td>
+      <td id='tdc_m_compute-a1-040' onclick="table_cell_click('compute-a1-040');" table='compute-a1-040'>&nbsp;</td>
+      <td id='tdc_m_compute-a1-041' onclick="table_cell_click('compute-a1-041');" table='compute-a1-041'>&nbsp;</td>
+      <td id='tdc_m_compute-a1-042' onclick="table_cell_click('compute-a1-042');" table='compute-a1-042'>&nbsp;</td>
+      </tr>
+      <tr>
+      <td id='tdc_m_compute-a1-043' onclick="table_cell_click('compute-a1-043');" table='compute-a1-043'>&nbsp;</td>
+      <td id='tdc_m_compute-a1-044' onclick="table_cell_click('compute-a1-044');" table='compute-a1-044'>&nbsp;</td>
+      <td id='tdc_m_compute-a1-045' onclick="table_cell_click('compute-a1-045');" table='compute-a1-045'>&nbsp;</td>
+      <td id='tdc_m_compute-a1-046' onclick="table_cell_click('compute-a1-046');" table='compute-a1-046'>&nbsp;</td>
+      <td id='tdc_m_compute-a1-047' onclick="table_cell_click('compute-a1-047');" table='compute-a1-047'>&nbsp;</td>
+      <td id='tdc_m_compute-a1-048' onclick="table_cell_click('compute-a1-048');" table='compute-a1-048'>&nbsp;</td>
+      <td id='tdc_m_compute-a1-049' onclick="table_cell_click('compute-a1-049');" table='compute-a1-049'>&nbsp;</td>
+      <td id='tdc_m_compute-a1-050' onclick="table_cell_click('compute-a1-050');" table='compute-a1-050'>&nbsp;</td>
+      <td id='tdc_m_compute-a1-051' onclick="table_cell_click('compute-a1-051');" table='compute-a1-051'>&nbsp;</td>
+      <td id='tdc_m_compute-a1-052' onclick="table_cell_click('compute-a1-052');" table='compute-a1-052'>&nbsp;</td>
+      <td id='tdc_m_compute-a1-053' onclick="table_cell_click('compute-a1-053');" table='compute-a1-053'>&nbsp;</td>
+      <td id='tdc_m_compute-a1-054' onclick="table_cell_click('compute-a1-054');" table='compute-a1-054'>&nbsp;</td>
+      <td id='tdc_m_compute-a1-055' onclick="table_cell_click('compute-a1-055');" table='compute-a1-055'>&nbsp;</td>
+      <td id='tdc_m_compute-a1-056' onclick="table_cell_click('compute-a1-056');" table='compute-a1-056'>&nbsp;</td>
+      <td id='tdc_m_compute-gpu-a1-001' onclick="table_cell_click('compute-gpu-a1-001');" table='compute-gpu-a1-001'>&nbsp;</td>
+      <td id='tdc_m_compute-gpu-a1-002' onclick="table_cell_click('compute-gpu-a1-002');" table='compute-gpu-a1-002'>&nbsp;</td>
+      <td id='tdc_m_compute-gpu-a1-003' onclick="table_cell_click('compute-gpu-a1-003');" table='compute-gpu-a1-003'>&nbsp;</td>
+      <td id='tdc_m_compute-gpu-a1-004' onclick="table_cell_click('compute-gpu-a1-004');" table='compute-gpu-a1-004'>&nbsp;</td>
+      <td id='tdc_m_compute-a1-057' onclick="table_cell_click('compute-a1-057');" table='compute-a1-057'>&nbsp;</td>
+      <td id='tdc_m_compute-a1-058' onclick="table_cell_click('compute-a1-058');" table='compute-a1-058'>&nbsp;</td>
+      <td id='tdc_m_compute-a1-059' onclick="table_cell_click('compute-a1-059');" table='compute-a1-059'>&nbsp;</td>
+      </tr>
+      <tr>
+      <td id='tdc_m_compute-a1-060' onclick="table_cell_click('compute-a1-060');" table='compute-a1-060'>&nbsp;</td>
+      <td id='tdc_m_compute-a1-061' onclick="table_cell_click('compute-a1-061');" table='compute-a1-061'>&nbsp;</td>
+      <td id='tdc_m_compute-a1-062' onclick="table_cell_click('compute-a1-062');" table='compute-a1-062'>&nbsp;</td>
+      <td id='tdc_m_compute-a1-063' onclick="table_cell_click('compute-a1-063');" table='compute-a1-063'>&nbsp;</td>
+      <td id='tdc_m_compute-a1-064' onclick="table_cell_click('compute-a1-064');" table='compute-a1-064'>&nbsp;</td>
+      <td id='tdc_m_compute-a1-065' onclick="table_cell_click('compute-a1-065');" table='compute-a1-065'>&nbsp;</td>
+      <td id='tdc_m_compute-a1-066' onclick="table_cell_click('compute-a1-066');" table='compute-a1-066'>&nbsp;</td>
+      <td id='tdc_m_compute-a1-067' onclick="table_cell_click('compute-a1-067');" table='compute-a1-067'>&nbsp;</td>
+      <td id='tdc_m_compute-a1-068' onclick="table_cell_click('compute-a1-068');" table='compute-a1-068'>&nbsp;</td>
+      <td id='tdc_m_compute-a1-069' onclick="table_cell_click('compute-a1-069');" table='compute-a1-069'>&nbsp;</td>
+      <td id='tdc_m_compute-a1-070' onclick="table_cell_click('compute-a1-070');" table='compute-a1-070'>&nbsp;</td>
+      <td id='tdc_m_compute-a1-071' onclick="table_cell_click('compute-a1-071');" table='compute-a1-071'>&nbsp;</td>
+      <td id='tdc_m_compute-a1-072' onclick="table_cell_click('compute-a1-072');" table='compute-a1-072'>&nbsp;</td>
+      <td id='tdc_m_compute-a1-073' onclick="table_cell_click('compute-a1-073');" table='compute-a1-073'>&nbsp;</td>
+      <td id='tdc_m_compute-a1-074' onclick="table_cell_click('compute-a1-074');" table='compute-a1-074'>&nbsp;</td>
+      <td id='tdc_m_compute-a1-075' onclick="table_cell_click('compute-a1-075');" table='compute-a1-075'>&nbsp;</td>
+      <td id='tdc_m_compute-a1-076' onclick="table_cell_click('compute-a1-076');" table='compute-a1-076'>&nbsp;</td>
+      <td id='tdc_m_compute-b1-001' onclick="table_cell_click('compute-b1-001');" table='compute-b1-001'>&nbsp;</td>
+      <td id='tdc_m_compute-b1-002' onclick="table_cell_click('compute-b1-002');" table='compute-b1-002'>&nbsp;</td>
+      <td id='tdc_m_compute-b1-003' onclick="table_cell_click('compute-b1-003');" table='compute-b1-003'>&nbsp;</td>
+      <td id='tdc_m_compute-b1-004' onclick="table_cell_click('compute-b1-004');" table='compute-b1-004'>&nbsp;</td>
+      </tr>
+      <tr>
+      <td id='tdc_m_compute-b1-005' onclick="table_cell_click('compute-b1-005');" table='compute-b1-005'>&nbsp;</td>
+      <td id='tdc_m_compute-b1-006' onclick="table_cell_click('compute-b1-006');" table='compute-b1-006'>&nbsp;</td>
+      <td id='tdc_m_compute-b1-007' onclick="table_cell_click('compute-b1-007');" table='compute-b1-007'>&nbsp;</td>
+      <td id='tdc_m_compute-b1-008' onclick="table_cell_click('compute-b1-008');" table='compute-b1-008'>&nbsp;</td>
+      <td id='tdc_m_compute-b1-009' onclick="table_cell_click('compute-b1-009');" table='compute-b1-009'>&nbsp;</td>
+      <td id='tdc_m_compute-b1-010' onclick="table_cell_click('compute-b1-010');" table='compute-b1-010'>&nbsp;</td>
+      <td id='tdc_m_compute-b1-011' onclick="table_cell_click('compute-b1-011');" table='compute-b1-011'>&nbsp;</td>
+      <td id='tdc_m_compute-b1-012' onclick="table_cell_click('compute-b1-012');" table='compute-b1-012'>&nbsp;</td>
+      <td id='tdc_m_compute-b1-013' onclick="table_cell_click('compute-b1-013');" table='compute-b1-013'>&nbsp;</td>
+      <td id='tdc_m_compute-b1-014' onclick="table_cell_click('compute-b1-014');" table='compute-b1-014'>&nbsp;</td>
+      <td id='tdc_m_compute-b1-015' onclick="table_cell_click('compute-b1-015');" table='compute-b1-015'>&nbsp;</td>
+      <td id='tdc_m_compute-b1-016' onclick="table_cell_click('compute-b1-016');" table='compute-b1-016'>&nbsp;</td>
+      <td id='tdc_m_compute-b1-017' onclick="table_cell_click('compute-b1-017');" table='compute-b1-017'>&nbsp;</td>
+      <td id='tdc_m_compute-b1-018' onclick="table_cell_click('compute-b1-018');" table='compute-b1-018'>&nbsp;</td>
+      <td id='tdc_m_compute-b1-019' onclick="table_cell_click('compute-b1-019');" table='compute-b1-019'>&nbsp;</td>
+      <td id='tdc_m_compute-b1-020' onclick="table_cell_click('compute-b1-020');" table='compute-b1-020'>&nbsp;</td>
+      <td id='tdc_m_compute-b1-021' onclick="table_cell_click('compute-b1-021');" table='compute-b1-021'>&nbsp;</td>
+      <td id='tdc_m_compute-b1-022' onclick="table_cell_click('compute-b1-022');" table='compute-b1-022'>&nbsp;</td>
+      <td id='tdc_m_compute-b1-023' onclick="table_cell_click('compute-b1-023');" table='compute-b1-023'>&nbsp;</td>
+      <td id='tdc_m_compute-b1-024' onclick="table_cell_click('compute-b1-024');" table='compute-b1-024'>&nbsp;</td>
+      <td id='tdc_m_compute-b1-025' onclick="table_cell_click('compute-b1-025');" table='compute-b1-025'>&nbsp;</td>
+      </tr>
+      <tr>
+      <td id='tdc_m_compute-b1-026' onclick="table_cell_click('compute-b1-026');" table='compute-b1-026'>&nbsp;</td>
+      <td id='tdc_m_compute-b1-027' onclick="table_cell_click('compute-b1-027');" table='compute-b1-027'>&nbsp;</td>
+      <td id='tdc_m_compute-b1-028' onclick="table_cell_click('compute-b1-028');" table='compute-b1-028'>&nbsp;</td>
+      <td id='tdc_m_compute-b1-029' onclick="table_cell_click('compute-b1-029');" table='compute-b1-029'>&nbsp;</td>
+      <td id='tdc_m_compute-b1-030' onclick="table_cell_click('compute-b1-030');" table='compute-b1-030'>&nbsp;</td>
+      <td id='tdc_m_compute-b1-031' onclick="table_cell_click('compute-b1-031');" table='compute-b1-031'>&nbsp;</td>
+      <td id='tdc_m_compute-b1-032' onclick="table_cell_click('compute-b1-032');" table='compute-b1-032'>&nbsp;</td>
+      <td id='tdc_m_compute-b1-033' onclick="table_cell_click('compute-b1-033');" table='compute-b1-033'>&nbsp;</td>
+      <td id='tdc_m_compute-b1-034' onclick="table_cell_click('compute-b1-034');" table='compute-b1-034'>&nbsp;</td>
+      <td id='tdc_m_compute-gpu-b1-001' onclick="table_cell_click('compute-gpu-b1-001');" table='compute-gpu-b1-001'>&nbsp;</td>
+      <td id='tdc_m_compute-gpu-b1-002' onclick="table_cell_click('compute-gpu-b1-002');" table='compute-gpu-b1-002'>&nbsp;</td>
+      <td id='tdc_m_compute-gpu-b1-003' onclick="table_cell_click('compute-gpu-b1-003');" table='compute-gpu-b1-003'>&nbsp;</td>
+      <td id='tdc_m_compute-gpu-b1-004' onclick="table_cell_click('compute-gpu-b1-004');" table='compute-gpu-b1-004'>&nbsp;</td>
+      <td id='tdc_m_compute-b1-035' onclick="table_cell_click('compute-b1-035');" table='compute-b1-035'>&nbsp;</td>
+      <td id='tdc_m_compute-b1-036' onclick="table_cell_click('compute-b1-036');" table='compute-b1-036'>&nbsp;</td>
+      <td id='tdc_m_compute-b1-037' onclick="table_cell_click('compute-b1-037');" table='compute-b1-037'>&nbsp;</td>
+      <td id='tdc_m_compute-b1-038' onclick="table_cell_click('compute-b1-038');" table='compute-b1-038'>&nbsp;</td>
+      <td id='tdc_m_compute-b1-039' onclick="table_cell_click('compute-b1-039');" table='compute-b1-039'>&nbsp;</td>
+      <td id='tdc_m_compute-b1-040' onclick="table_cell_click('compute-b1-040');" table='compute-b1-040'>&nbsp;</td>
+      <td id='tdc_m_compute-b1-041' onclick="table_cell_click('compute-b1-041');" table='compute-b1-041'>&nbsp;</td>
+      <td id='tdc_m_compute-b1-042' onclick="table_cell_click('compute-b1-042');" table='compute-b1-042'>&nbsp;</td>
+      </tr>
+      <tr>
+      <td id='tdc_m_compute-b1-043' onclick="table_cell_click('compute-b1-043');" table='compute-b1-043'>&nbsp;</td>
+      <td id='tdc_m_compute-b1-044' onclick="table_cell_click('compute-b1-044');" table='compute-b1-044'>&nbsp;</td>
+      <td id='tdc_m_compute-b1-045' onclick="table_cell_click('compute-b1-045');" table='compute-b1-045'>&nbsp;</td>
+      <td id='tdc_m_compute-b1-046' onclick="table_cell_click('compute-b1-046');" table='compute-b1-046'>&nbsp;</td>
+      <td id='tdc_m_compute-b1-047' onclick="table_cell_click('compute-b1-047');" table='compute-b1-047'>&nbsp;</td>
+      <td id='tdc_m_compute-b1-048' onclick="table_cell_click('compute-b1-048');" table='compute-b1-048'>&nbsp;</td>
+      <td id='tdc_m_compute-b1-049' onclick="table_cell_click('compute-b1-049');" table='compute-b1-049'>&nbsp;</td>
+      <td id='tdc_m_compute-b1-050' onclick="table_cell_click('compute-b1-050');" table='compute-b1-050'>&nbsp;</td>
+      <td id='tdc_m_compute-b1-051' onclick="table_cell_click('compute-b1-051');" table='compute-b1-051'>&nbsp;</td>
+      <td id='tdc_m_compute-b1-052' onclick="table_cell_click('compute-b1-052');" table='compute-b1-052'>&nbsp;</td>
+      <td id='tdc_m_compute-b1-053' onclick="table_cell_click('compute-b1-053');" table='compute-b1-053'>&nbsp;</td>
+      <td id='tdc_m_compute-b1-054' onclick="table_cell_click('compute-b1-054');" table='compute-b1-054'>&nbsp;</td>
+      <td id='tdc_m_compute-b1-055' onclick="table_cell_click('compute-b1-055');" table='compute-b1-055'>&nbsp;</td>
+      <td id='tdc_m_compute-b1-056' onclick="table_cell_click('compute-b1-056');" table='compute-b1-056'>&nbsp;</td>
+      <td id='tdc_m_compute-b1-057' onclick="table_cell_click('compute-b1-057');" table='compute-b1-057'>&nbsp;</td>
+      <td id='tdc_m_compute-b1-058' onclick="table_cell_click('compute-b1-058');" table='compute-b1-058'>&nbsp;</td>
+      <td id='tdc_m_compute-b1-059' onclick="table_cell_click('compute-b1-059');" table='compute-b1-059'>&nbsp;</td>
+      <td id='tdc_m_compute-b1-060' onclick="table_cell_click('compute-b1-060');" table='compute-b1-060'>&nbsp;</td>
+      <td id='tdc_m_compute-b1-061' onclick="table_cell_click('compute-b1-061');" table='compute-b1-061'>&nbsp;</td>
+      <td id='tdc_m_compute-b1-062' onclick="table_cell_click('compute-b1-062');" table='compute-b1-062'>&nbsp;</td>
+      <td id='tdc_m_compute-b1-063' onclick="table_cell_click('compute-b1-063');" table='compute-b1-063'>&nbsp;</td>
+      </tr>
+      <tr>
+      <td id='tdc_m_compute-b1-064' onclick="table_cell_click('compute-b1-064');" table='compute-b1-064'>&nbsp;</td>
+      <td id='tdc_m_compute-b1-065' onclick="table_cell_click('compute-b1-065');" table='compute-b1-065'>&nbsp;</td>
+      <td id='tdc_m_compute-b1-066' onclick="table_cell_click('compute-b1-066');" table='compute-b1-066'>&nbsp;</td>
+      <td id='tdc_m_compute-b1-067' onclick="table_cell_click('compute-b1-067');" table='compute-b1-067'>&nbsp;</td>
+      <td id='tdc_m_compute-b1-068' onclick="table_cell_click('compute-b1-068');" table='compute-b1-068'>&nbsp;</td>
+      <td id='tdc_m_compute-gpu-b1-005' onclick="table_cell_click('compute-gpu-b1-005');" table='compute-gpu-b1-005'>&nbsp;</td>
+      <td id='tdc_m_compute-gpu-b1-006' onclick="table_cell_click('compute-gpu-b1-006');" table='compute-gpu-b1-006'>&nbsp;</td>
+      <td id='tdc_m_compute-gpu-b1-007' onclick="table_cell_click('compute-gpu-b1-007');" table='compute-gpu-b1-007'>&nbsp;</td>
+      <td id='tdc_m_compute-gpu-b1-008' onclick="table_cell_click('compute-gpu-b1-008');" table='compute-gpu-b1-008'>&nbsp;</td>
+      <td id='tdc_m_compute-c1-001' onclick="table_cell_click('compute-c1-001');" table='compute-c1-001'>&nbsp;</td>
+      <td id='tdc_m_compute-c1-002' onclick="table_cell_click('compute-c1-002');" table='compute-c1-002'>&nbsp;</td>
+      <td id='tdc_m_compute-c1-003' onclick="table_cell_click('compute-c1-003');" table='compute-c1-003'>&nbsp;</td>
+      <td id='tdc_m_compute-c1-004' onclick="table_cell_click('compute-c1-004');" table='compute-c1-004'>&nbsp;</td>
+      <td id='tdc_m_compute-c1-005' onclick="table_cell_click('compute-c1-005');" table='compute-c1-005'>&nbsp;</td>
+      <td id='tdc_m_compute-c1-006' onclick="table_cell_click('compute-c1-006');" table='compute-c1-006'>&nbsp;</td>
+      <td id='tdc_m_compute-c1-007' onclick="table_cell_click('compute-c1-007');" table='compute-c1-007'>&nbsp;</td>
+      <td id='tdc_m_compute-c1-008' onclick="table_cell_click('compute-c1-008');" table='compute-c1-008'>&nbsp;</td>
+      <td id='tdc_m_compute-c1-009' onclick="table_cell_click('compute-c1-009');" table='compute-c1-009'>&nbsp;</td>
+      <td id='tdc_m_compute-c1-010' onclick="table_cell_click('compute-c1-010');" table='compute-c1-010'>&nbsp;</td>
+      <td id='tdc_m_compute-c1-011' onclick="table_cell_click('compute-c1-011');" table='compute-c1-011'>&nbsp;</td>
+      <td id='tdc_m_compute-c1-012' onclick="table_cell_click('compute-c1-012');" table='compute-c1-012'>&nbsp;</td>
+      </tr>
+      <tr>
+      <td id='tdc_m_compute-c1-013' onclick="table_cell_click('compute-c1-013');" table='compute-c1-013'>&nbsp;</td>
+      <td id='tdc_m_compute-c1-014' onclick="table_cell_click('compute-c1-014');" table='compute-c1-014'>&nbsp;</td>
+      <td id='tdc_m_compute-c1-015' onclick="table_cell_click('compute-c1-015');" table='compute-c1-015'>&nbsp;</td>
+      <td id='tdc_m_compute-c1-016' onclick="table_cell_click('compute-c1-016');" table='compute-c1-016'>&nbsp;</td>
+      <td id='tdc_m_compute-c1-017' onclick="table_cell_click('compute-c1-017');" table='compute-c1-017'>&nbsp;</td>
+      <td id='tdc_m_compute-c1-018' onclick="table_cell_click('compute-c1-018');" table='compute-c1-018'>&nbsp;</td>
+      <td id='tdc_m_compute-c1-019' onclick="table_cell_click('compute-c1-019');" table='compute-c1-019'>&nbsp;</td>
+      <td id='tdc_m_compute-c1-020' onclick="table_cell_click('compute-c1-020');" table='compute-c1-020'>&nbsp;</td>
+      <td id='tdc_m_compute-c1-021' onclick="table_cell_click('compute-c1-021');" table='compute-c1-021'>&nbsp;</td>
+      <td id='tdc_m_compute-c1-022' onclick="table_cell_click('compute-c1-022');" table='compute-c1-022'>&nbsp;</td>
+      <td id='tdc_m_compute-c1-023' onclick="table_cell_click('compute-c1-023');" table='compute-c1-023'>&nbsp;</td>
+      <td id='tdc_m_compute-c1-024' onclick="table_cell_click('compute-c1-024');" table='compute-c1-024'>&nbsp;</td>
+      <td id='tdc_m_compute-c1-025' onclick="table_cell_click('compute-c1-025');" table='compute-c1-025'>&nbsp;</td>
+      <td id='tdc_m_compute-c1-026' onclick="table_cell_click('compute-c1-026');" table='compute-c1-026'>&nbsp;</td>
+      <td id='tdc_m_compute-c1-027' onclick="table_cell_click('compute-c1-027');" table='compute-c1-027'>&nbsp;</td>
+      <td id='tdc_m_compute-c1-028' onclick="table_cell_click('compute-c1-028');" table='compute-c1-028'>&nbsp;</td>
+      <td id='tdc_m_compute-gpu-c1-001' onclick="table_cell_click('compute-gpu-c1-001');" table='compute-gpu-c1-001'>&nbsp;</td>
+      <td id='tdc_m_compute-gpu-c1-002' onclick="table_cell_click('compute-gpu-c1-002');" table='compute-gpu-c1-002'>&nbsp;</td>
+      <td id='tdc_m_compute-cs-002' onclick="table_cell_click('compute-cs-002');" table='compute-cs-002'>&nbsp;</td>
+      <td id='tdc_m_compute-stats-002' onclick="table_cell_click('compute-stats-002');" table='compute-stats-002'>&nbsp;</td>
+      <td id='tdc_m_compute-stats-003' onclick="table_cell_click('compute-stats-003');" table='compute-stats-003'>&nbsp;</td>
+      </tr>
+      <tr>
+      <td id='tdc_m_compute-c1-059' onclick="table_cell_click('compute-c1-059');" table='compute-c1-059'>&nbsp;</td>
+      <td id='tdc_m_compute-c1-060' onclick="table_cell_click('compute-c1-060');" table='compute-c1-060'>&nbsp;</td>
+      <td id='tdc_m_compute-c1-029' onclick="table_cell_click('compute-c1-029');" table='compute-c1-029'>&nbsp;</td>
+      <td id='tdc_m_compute-c1-030' onclick="table_cell_click('compute-c1-030');" table='compute-c1-030'>&nbsp;</td>
+      <td id='tdc_m_compute-c1-031' onclick="table_cell_click('compute-c1-031');" table='compute-c1-031'>&nbsp;</td>
+      <td id='tdc_m_compute-c1-032' onclick="table_cell_click('compute-c1-032');" table='compute-c1-032'>&nbsp;</td>
+      <td id='tdc_m_compute-c1-033' onclick="table_cell_click('compute-c1-033');" table='compute-c1-033'>&nbsp;</td>
+      <td id='tdc_m_compute-c1-034' onclick="table_cell_click('compute-c1-034');" table='compute-c1-034'>&nbsp;</td>
+      <td id='tdc_m_compute-c1-035' onclick="table_cell_click('compute-c1-035');" table='compute-c1-035'>&nbsp;</td>
+      <td id='tdc_m_compute-c1-036' onclick="table_cell_click('compute-c1-036');" table='compute-c1-036'>&nbsp;</td>
+      <td id='tdc_m_compute-c1-037' onclick="table_cell_click('compute-c1-037');" table='compute-c1-037'>&nbsp;</td>
+      <td id='tdc_m_compute-c1-038' onclick="table_cell_click('compute-c1-038');" table='compute-c1-038'>&nbsp;</td>
+      <td id='tdc_m_compute-c1-039' onclick="table_cell_click('compute-c1-039');" table='compute-c1-039'>&nbsp;</td>
+      <td id='tdc_m_compute-c1-040' onclick="table_cell_click('compute-c1-040');" table='compute-c1-040'>&nbsp;</td>
+      <td id='tdc_m_compute-c1-041' onclick="table_cell_click('compute-c1-041');" table='compute-c1-041'>&nbsp;</td>
+      <td id='tdc_m_compute-c1-042' onclick="table_cell_click('compute-c1-042');" table='compute-c1-042'>&nbsp;</td>
+      <td id='tdc_m_compute-c1-043' onclick="table_cell_click('compute-c1-043');" table='compute-c1-043'>&nbsp;</td>
+      <td id='tdc_m_compute-c1-044' onclick="table_cell_click('compute-c1-044');" table='compute-c1-044'>&nbsp;</td>
+      <td id='tdc_m_compute-c1-045' onclick="table_cell_click('compute-c1-045');" table='compute-c1-045'>&nbsp;</td>
+      <td id='tdc_m_compute-c1-046' onclick="table_cell_click('compute-c1-046');" table='compute-c1-046'>&nbsp;</td>
+      <td id='tdc_m_compute-c1-047' onclick="table_cell_click('compute-c1-047');" table='compute-c1-047'>&nbsp;</td>
+      </tr>
+      <tr>
+      <td id='tdc_m_compute-c1-048' onclick="table_cell_click('compute-c1-048');" table='compute-c1-048'>&nbsp;</td>
+      <td id='tdc_m_compute-c1-049' onclick="table_cell_click('compute-c1-049');" table='compute-c1-049'>&nbsp;</td>
+      <td id='tdc_m_compute-c1-050' onclick="table_cell_click('compute-c1-050');" table='compute-c1-050'>&nbsp;</td>
+      <td id='tdc_m_compute-c1-051' onclick="table_cell_click('compute-c1-051');" table='compute-c1-051'>&nbsp;</td>
+      <td id='tdc_m_compute-c1-052' onclick="table_cell_click('compute-c1-052');" table='compute-c1-052'>&nbsp;</td>
+      <td id='tdc_m_compute-c1-053' onclick="table_cell_click('compute-c1-053');" table='compute-c1-053'>&nbsp;</td>
+      <td id='tdc_m_compute-c1-054' onclick="table_cell_click('compute-c1-054');" table='compute-c1-054'>&nbsp;</td>
+      <td id='tdc_m_compute-c1-055' onclick="table_cell_click('compute-c1-055');" table='compute-c1-055'>&nbsp;</td>
+      <td id='tdc_m_compute-c1-056' onclick="table_cell_click('compute-c1-056');" table='compute-c1-056'>&nbsp;</td>
+      <td id='tdc_m_compute-gpu-c1-003' onclick="table_cell_click('compute-gpu-c1-003');" table='compute-gpu-c1-003'>&nbsp;</td>
+      <td id='tdc_m_compute-gpu-c1-004' onclick="table_cell_click('compute-gpu-c1-004');" table='compute-gpu-c1-004'>&nbsp;</td>
+      <td id='tdc_m_compute-stats-004' onclick="table_cell_click('compute-stats-004');" table='compute-stats-004'>&nbsp;</td>
+      <td id='tdc_m_compute-stats-005' onclick="table_cell_click('compute-stats-005');" table='compute-stats-005'>&nbsp;</td>
+      <td id='tdc_m_compute-c1-057' onclick="table_cell_click('compute-c1-057');" table='compute-c1-057'>&nbsp;</td>
+      <td id='tdc_m_compute-c1-058' onclick="table_cell_click('compute-c1-058');" table='compute-c1-058'>&nbsp;</td>
+      <td id='tdc_m_compute-cs-003' onclick="table_cell_click('compute-cs-003');" table='compute-cs-003'>&nbsp;</td>
+      <td id='tdc_m_compute-physics-001' onclick="table_cell_click('compute-physics-001');" table='compute-physics-001'>&nbsp;</td>
+      <td id='tdc_m_compute-d1-001' onclick="table_cell_click('compute-d1-001');" table='compute-d1-001'>&nbsp;</td>
+      <td id='tdc_m_compute-d1-002' onclick="table_cell_click('compute-d1-002');" table='compute-d1-002'>&nbsp;</td>
+      <td id='tdc_m_compute-d1-003' onclick="table_cell_click('compute-d1-003');" table='compute-d1-003'>&nbsp;</td>
+      <td id='tdc_m_compute-d1-004' onclick="table_cell_click('compute-d1-004');" table='compute-d1-004'>&nbsp;</td>
+      </tr>
+      <tr>
+      <td id='tdc_m_compute-d1-005' onclick="table_cell_click('compute-d1-005');" table='compute-d1-005'>&nbsp;</td>
+      <td id='tdc_m_compute-d1-006' onclick="table_cell_click('compute-d1-006');" table='compute-d1-006'>&nbsp;</td>
+      <td id='tdc_m_compute-d1-007' onclick="table_cell_click('compute-d1-007');" table='compute-d1-007'>&nbsp;</td>
+      <td id='tdc_m_compute-d1-008' onclick="table_cell_click('compute-d1-008');" table='compute-d1-008'>&nbsp;</td>
+      <td id='tdc_m_compute-d1-009' onclick="table_cell_click('compute-d1-009');" table='compute-d1-009'>&nbsp;</td>
+      <td id='tdc_m_compute-d1-010' onclick="table_cell_click('compute-d1-010');" table='compute-d1-010'>&nbsp;</td>
+      <td id='tdc_m_compute-d1-011' onclick="table_cell_click('compute-d1-011');" table='compute-d1-011'>&nbsp;</td>
+      <td id='tdc_m_compute-d1-012' onclick="table_cell_click('compute-d1-012');" table='compute-d1-012'>&nbsp;</td>
+      <td id='tdc_m_compute-d1-013' onclick="table_cell_click('compute-d1-013');" table='compute-d1-013'>&nbsp;</td>
+      <td id='tdc_m_compute-d1-014' onclick="table_cell_click('compute-d1-014');" table='compute-d1-014'>&nbsp;</td>
+      <td id='tdc_m_compute-d1-015' onclick="table_cell_click('compute-d1-015');" table='compute-d1-015'>&nbsp;</td>
+      <td id='tdc_m_compute-d1-016' onclick="table_cell_click('compute-d1-016');" table='compute-d1-016'>&nbsp;</td>
+      <td id='tdc_m_compute-d1-017' onclick="table_cell_click('compute-d1-017');" table='compute-d1-017'>&nbsp;</td>
+      <td id='tdc_m_compute-d1-018' onclick="table_cell_click('compute-d1-018');" table='compute-d1-018'>&nbsp;</td>
+      <td id='tdc_m_compute-d1-019' onclick="table_cell_click('compute-d1-019');" table='compute-d1-019'>&nbsp;</td>
+      <td id='tdc_m_compute-d1-020' onclick="table_cell_click('compute-d1-020');" table='compute-d1-020'>&nbsp;</td>
+      <td id='tdc_m_compute-d1-021' onclick="table_cell_click('compute-d1-021');" table='compute-d1-021'>&nbsp;</td>
+      <td id='tdc_m_compute-d1-022' onclick="table_cell_click('compute-d1-022');" table='compute-d1-022'>&nbsp;</td>
+      <td id='tdc_m_compute-d1-023' onclick="table_cell_click('compute-d1-023');" table='compute-d1-023'>&nbsp;</td>
+      <td id='tdc_m_compute-d1-024' onclick="table_cell_click('compute-d1-024');" table='compute-d1-024'>&nbsp;</td>
+      <td id='tdc_m_compute-d1-025' onclick="table_cell_click('compute-d1-025');" table='compute-d1-025'>&nbsp;</td>
+      </tr>
+      <tr>
+      <td id='tdc_m_compute-d1-026' onclick="table_cell_click('compute-d1-026');" table='compute-d1-026'>&nbsp;</td>
+      <td id='tdc_m_compute-d1-027' onclick="table_cell_click('compute-d1-027');" table='compute-d1-027'>&nbsp;</td>
+      <td id='tdc_m_compute-d1-028' onclick="table_cell_click('compute-d1-028');" table='compute-d1-028'>&nbsp;</td>
+      <td id='tdc_m_compute-d1-029' onclick="table_cell_click('compute-d1-029');" table='compute-d1-029'>&nbsp;</td>
+      <td id='tdc_m_compute-d1-030' onclick="table_cell_click('compute-d1-030');" table='compute-d1-030'>&nbsp;</td>
+      <td id='tdc_m_compute-d1-031' onclick="table_cell_click('compute-d1-031');" table='compute-d1-031'>&nbsp;</td>
+      <td id='tdc_m_compute-d1-032' onclick="table_cell_click('compute-d1-032');" table='compute-d1-032'>&nbsp;</td>
+      <td id='tdc_m_compute-d1-033' onclick="table_cell_click('compute-d1-033');" table='compute-d1-033'>&nbsp;</td>
+      <td id='tdc_m_compute-d1-034' onclick="table_cell_click('compute-d1-034');" table='compute-d1-034'>&nbsp;</td>
+      <td id='tdc_m_compute-d1-035' onclick="table_cell_click('compute-d1-035');" table='compute-d1-035'>&nbsp;</td>
+      <td id='tdc_m_compute-d1-036' onclick="table_cell_click('compute-d1-036');" table='compute-d1-036'>&nbsp;</td>
+      <td id='tdc_m_compute-gpu-d1-001' onclick="table_cell_click('compute-gpu-d1-001');" table='compute-gpu-d1-001'>&nbsp;</td>
+      <td id='tdc_m_compute-gpu-d1-002' onclick="table_cell_click('compute-gpu-d1-002');" table='compute-gpu-d1-002'>&nbsp;</td>
+      <td id='tdc_m_compute-phi-d1-001' onclick="table_cell_click('compute-phi-d1-001');" table='compute-phi-d1-001'>&nbsp;</td>
+      <td id='tdc_m_compute-d1-037' onclick="table_cell_click('compute-d1-037');" table='compute-d1-037'>&nbsp;</td>
+      <td id='tdc_m_compute-d1-038' onclick="table_cell_click('compute-d1-038');" table='compute-d1-038'>&nbsp;</td>
+      <td id='tdc_m_compute-d1-039' onclick="table_cell_click('compute-d1-039');" table='compute-d1-039'>&nbsp;</td>
+      <td id='tdc_m_compute-d1-040' onclick="table_cell_click('compute-d1-040');" table='compute-d1-040'>&nbsp;</td>
+      <td id='tdc_m_compute-d1-041' onclick="table_cell_click('compute-d1-041');" table='compute-d1-041'>&nbsp;</td>
+      <td id='tdc_m_compute-d1-042' onclick="table_cell_click('compute-d1-042');" table='compute-d1-042'>&nbsp;</td>
+      <td id='tdc_m_compute-d1-043' onclick="table_cell_click('compute-d1-043');" table='compute-d1-043'>&nbsp;</td>
+      </tr>
+      <tr>
+      <td id='tdc_m_compute-d1-044' onclick="table_cell_click('compute-d1-044');" table='compute-d1-044'>&nbsp;</td>
+      <td id='tdc_m_compute-d1-045' onclick="table_cell_click('compute-d1-045');" table='compute-d1-045'>&nbsp;</td>
+      <td id='tdc_m_compute-d1-046' onclick="table_cell_click('compute-d1-046');" table='compute-d1-046'>&nbsp;</td>
+      <td id='tdc_m_compute-d1-047' onclick="table_cell_click('compute-d1-047');" table='compute-d1-047'>&nbsp;</td>
+      <td id='tdc_m_compute-d1-048' onclick="table_cell_click('compute-d1-048');" table='compute-d1-048'>&nbsp;</td>
+      <td id='tdc_m_compute-d1-049' onclick="table_cell_click('compute-d1-049');" table='compute-d1-049'>&nbsp;</td>
+      <td id='tdc_m_compute-d1-050' onclick="table_cell_click('compute-d1-050');" table='compute-d1-050'>&nbsp;</td>
+      <td id='tdc_m_compute-d1-051' onclick="table_cell_click('compute-d1-051');" table='compute-d1-051'>&nbsp;</td>
+      <td id='tdc_m_compute-d1-052' onclick="table_cell_click('compute-d1-052');" table='compute-d1-052'>&nbsp;</td>
+      <td id='tdc_m_compute-d1-053' onclick="table_cell_click('compute-d1-053');" table='compute-d1-053'>&nbsp;</td>
+      <td id='tdc_m_compute-d1-054' onclick="table_cell_click('compute-d1-054');" table='compute-d1-054'>&nbsp;</td>
+      <td id='tdc_m_compute-d1-055' onclick="table_cell_click('compute-d1-055');" table='compute-d1-055'>&nbsp;</td>
+      <td id='tdc_m_compute-d1-056' onclick="table_cell_click('compute-d1-056');" table='compute-d1-056'>&nbsp;</td>
+      <td id='tdc_m_compute-d1-057' onclick="table_cell_click('compute-d1-057');" table='compute-d1-057'>&nbsp;</td>
+      <td id='tdc_m_compute-d1-058' onclick="table_cell_click('compute-d1-058');" table='compute-d1-058'>&nbsp;</td>
+      <td id='tdc_m_compute-d1-059' onclick="table_cell_click('compute-d1-059');" table='compute-d1-059'>&nbsp;</td>
+      <td id='tdc_m_compute-d1-060' onclick="table_cell_click('compute-d1-060');" table='compute-d1-060'>&nbsp;</td>
+      <td id='tdc_m_compute-d1-061' onclick="table_cell_click('compute-d1-061');" table='compute-d1-061'>&nbsp;</td>
+      <td id='tdc_m_compute-d1-062' onclick="table_cell_click('compute-d1-062');" table='compute-d1-062'>&nbsp;</td>
+      <td id='tdc_m_compute-d1-063' onclick="table_cell_click('compute-d1-063');" table='compute-d1-063'>&nbsp;</td>
+      <td id='tdc_m_compute-d1-064' onclick="table_cell_click('compute-d1-064');" table='compute-d1-064'>&nbsp;</td>
+      </tr>
+      <tr>
+      <td id='tdc_m_compute-d1-065' onclick="table_cell_click('compute-d1-065');" table='compute-d1-065'>&nbsp;</td>
+      <td id='tdc_m_compute-d1-066' onclick="table_cell_click('compute-d1-066');" table='compute-d1-066'>&nbsp;</td>
+      <td id='tdc_m_compute-d1-067' onclick="table_cell_click('compute-d1-067');" table='compute-d1-067'>&nbsp;</td>
+      <td id='tdc_m_compute-d1-068' onclick="table_cell_click('compute-d1-068');" table='compute-d1-068'>&nbsp;</td>
+      <td id='tdc_m_compute-d1-069' onclick="table_cell_click('compute-d1-069');" table='compute-d1-069'>&nbsp;</td>
+      <td id='tdc_m_compute-d1-070' onclick="table_cell_click('compute-d1-070');" table='compute-d1-070'>&nbsp;</td>
+      <td id='tdc_m_compute-gpu-d1-003' onclick="table_cell_click('compute-gpu-d1-003');" table='compute-gpu-d1-003'>&nbsp;</td>
+      <td id='tdc_m_compute-gpu-d1-004' onclick="table_cell_click('compute-gpu-d1-004');" table='compute-gpu-d1-004'>&nbsp;</td>
+      <td id='tdc_m_compute-gpu-d1-005' onclick="table_cell_click('compute-gpu-d1-005');" table='compute-gpu-d1-005'>&nbsp;</td>
+      <td id='tdc_m_compute-phi-d1-002' onclick="table_cell_click('compute-phi-d1-002');" table='compute-phi-d1-002'>&nbsp;</td>
+      <td id='tdc_m_compute-e1-001' onclick="table_cell_click('compute-e1-001');" table='compute-e1-001'>&nbsp;</td>
+      <td id='tdc_m_compute-e1-002' onclick="table_cell_click('compute-e1-002');" table='compute-e1-002'>&nbsp;</td>
+      <td id='tdc_m_compute-e1-003' onclick="table_cell_click('compute-e1-003');" table='compute-e1-003'>&nbsp;</td>
+      <td id='tdc_m_compute-e1-004' onclick="table_cell_click('compute-e1-004');" table='compute-e1-004'>&nbsp;</td>
+      <td id='tdc_m_compute-e1-005' onclick="table_cell_click('compute-e1-005');" table='compute-e1-005'>&nbsp;</td>
+      <td id='tdc_m_compute-e1-006' onclick="table_cell_click('compute-e1-006');" table='compute-e1-006'>&nbsp;</td>
+      <td id='tdc_m_compute-e1-007' onclick="table_cell_click('compute-e1-007');" table='compute-e1-007'>&nbsp;</td>
+      <td id='tdc_m_compute-e1-008' onclick="table_cell_click('compute-e1-008');" table='compute-e1-008'>&nbsp;</td>
+      <td id='tdc_m_compute-e1-009' onclick="table_cell_click('compute-e1-009');" table='compute-e1-009'>&nbsp;</td>
+      <td id='tdc_m_compute-e1-010' onclick="table_cell_click('compute-e1-010');" table='compute-e1-010'>&nbsp;</td>
+      <td id='tdc_m_compute-e1-011' onclick="table_cell_click('compute-e1-011');" table='compute-e1-011'>&nbsp;</td>
+      </tr>
+      <tr>
+      <td id='tdc_m_compute-e1-012' onclick="table_cell_click('compute-e1-012');" table='compute-e1-012'>&nbsp;</td>
+      <td id='tdc_m_compute-e1-013' onclick="table_cell_click('compute-e1-013');" table='compute-e1-013'>&nbsp;</td>
+      <td id='tdc_m_compute-e1-014' onclick="table_cell_click('compute-e1-014');" table='compute-e1-014'>&nbsp;</td>
+      <td id='tdc_m_compute-e1-015' onclick="table_cell_click('compute-e1-015');" table='compute-e1-015'>&nbsp;</td>
+      <td id='tdc_m_compute-e1-016' onclick="table_cell_click('compute-e1-016');" table='compute-e1-016'>&nbsp;</td>
+      <td id='tdc_m_compute-e1-017' onclick="table_cell_click('compute-e1-017');" table='compute-e1-017'>&nbsp;</td>
+      <td id='tdc_m_compute-e1-018' onclick="table_cell_click('compute-e1-018');" table='compute-e1-018'>&nbsp;</td>
+      <td id='tdc_m_compute-e1-019' onclick="table_cell_click('compute-e1-019');" table='compute-e1-019'>&nbsp;</td>
+      <td id='tdc_m_compute-e1-020' onclick="table_cell_click('compute-e1-020');" table='compute-e1-020'>&nbsp;</td>
+      <td id='tdc_m_compute-e1-021' onclick="table_cell_click('compute-e1-021');" table='compute-e1-021'>&nbsp;</td>
+      <td id='tdc_m_compute-e1-022' onclick="table_cell_click('compute-e1-022');" table='compute-e1-022'>&nbsp;</td>
+      <td id='tdc_m_compute-e1-045' onclick="table_cell_click('compute-e1-045');" table='compute-e1-045'>&nbsp;</td>
+      <td id='tdc_m_compute-e1-046' onclick="table_cell_click('compute-e1-046');" table='compute-e1-046'>&nbsp;</td>
+      <td id='tdc_m_compute-e1-047' onclick="table_cell_click('compute-e1-047');" table='compute-e1-047'>&nbsp;</td>
+      <td id='tdc_m_compute-e1-048' onclick="table_cell_click('compute-e1-048');" table='compute-e1-048'>&nbsp;</td>
+      <td id='tdc_m_compute-e1-049' onclick="table_cell_click('compute-e1-049');" table='compute-e1-049'>&nbsp;</td>
+      <td id='tdc_m_compute-e1-050' onclick="table_cell_click('compute-e1-050');" table='compute-e1-050'>&nbsp;</td>
+      <td id='tdc_m_compute-e1-051' onclick="table_cell_click('compute-e1-051');" table='compute-e1-051'>&nbsp;</td>
+      <td id='tdc_m_compute-e1-052' onclick="table_cell_click('compute-e1-052');" table='compute-e1-052'>&nbsp;</td>
+      <td id='tdc_m_compute-e1-053' onclick="table_cell_click('compute-e1-053');" table='compute-e1-053'>&nbsp;</td>
+      <td id='tdc_m_compute-e1-054' onclick="table_cell_click('compute-e1-054');" table='compute-e1-054'>&nbsp;</td>
+      </tr>
+      <tr>
+      <td id='tdc_m_compute-e1-055' onclick="table_cell_click('compute-e1-055');" table='compute-e1-055'>&nbsp;</td>
+      <td id='tdc_m_compute-e1-056' onclick="table_cell_click('compute-e1-056');" table='compute-e1-056'>&nbsp;</td>
+      <td id='tdc_m_compute-e1-057' onclick="table_cell_click('compute-e1-057');" table='compute-e1-057'>&nbsp;</td>
+      <td id='tdc_m_compute-e1-058' onclick="table_cell_click('compute-e1-058');" table='compute-e1-058'>&nbsp;</td>
+      <td id='tdc_m_compute-e1-059' onclick="table_cell_click('compute-e1-059');" table='compute-e1-059'>&nbsp;</td>
+      <td id='tdc_m_compute-e1-060' onclick="table_cell_click('compute-e1-060');" table='compute-e1-060'>&nbsp;</td>
+      <td id='tdc_m_compute-e1-061' onclick="table_cell_click('compute-e1-061');" table='compute-e1-061'>&nbsp;</td>
+      <td id='tdc_m_compute-e1-062' onclick="table_cell_click('compute-e1-062');" table='compute-e1-062'>&nbsp;</td>
+      <td id='tdc_m_compute-e1-023' onclick="table_cell_click('compute-e1-023');" table='compute-e1-023'>&nbsp;</td>
+      <td id='tdc_m_compute-e1-024' onclick="table_cell_click('compute-e1-024');" table='compute-e1-024'>&nbsp;</td>
+      <td id='tdc_m_compute-e1-025' onclick="table_cell_click('compute-e1-025');" table='compute-e1-025'>&nbsp;</td>
+      <td id='tdc_m_compute-e1-026' onclick="table_cell_click('compute-e1-026');" table='compute-e1-026'>&nbsp;</td>
+      <td id='tdc_m_compute-e1-027' onclick="table_cell_click('compute-e1-027');" table='compute-e1-027'>&nbsp;</td>
+      <td id='tdc_m_compute-e1-028' onclick="table_cell_click('compute-e1-028');" table='compute-e1-028'>&nbsp;</td>
+      <td id='tdc_m_compute-e1-029' onclick="table_cell_click('compute-e1-029');" table='compute-e1-029'>&nbsp;</td>
+      <td id='tdc_m_compute-e1-030' onclick="table_cell_click('compute-e1-030');" table='compute-e1-030'>&nbsp;</td>
+      <td id='tdc_m_compute-e1-031' onclick="table_cell_click('compute-e1-031');" table='compute-e1-031'>&nbsp;</td>
+      <td id='tdc_m_compute-e1-032' onclick="table_cell_click('compute-e1-032');" table='compute-e1-032'>&nbsp;</td>
+      <td id='tdc_m_compute-e1-033' onclick="table_cell_click('compute-e1-033');" table='compute-e1-033'>&nbsp;</td>
+      <td id='tdc_m_compute-e1-034' onclick="table_cell_click('compute-e1-034');" table='compute-e1-034'>&nbsp;</td>
+      <td id='tdc_m_compute-e1-035' onclick="table_cell_click('compute-e1-035');" table='compute-e1-035'>&nbsp;</td>
+      </tr>
+      <tr>
+      <td id='tdc_m_compute-e1-036' onclick="table_cell_click('compute-e1-036');" table='compute-e1-036'>&nbsp;</td>
+      <td id='tdc_m_compute-e1-037' onclick="table_cell_click('compute-e1-037');" table='compute-e1-037'>&nbsp;</td>
+      <td id='tdc_m_compute-e1-038' onclick="table_cell_click('compute-e1-038');" table='compute-e1-038'>&nbsp;</td>
+      <td id='tdc_m_compute-e1-039' onclick="table_cell_click('compute-e1-039');" table='compute-e1-039'>&nbsp;</td>
+      <td id='tdc_m_compute-e1-040' onclick="table_cell_click('compute-e1-040');" table='compute-e1-040'>&nbsp;</td>
+      <td id='tdc_m_compute-e1-041' onclick="table_cell_click('compute-e1-041');" table='compute-e1-041'>&nbsp;</td>
+      <td id='tdc_m_compute-e1-042' onclick="table_cell_click('compute-e1-042');" table='compute-e1-042'>&nbsp;</td>
+      <td id='tdc_m_compute-e1-043' onclick="table_cell_click('compute-e1-043');" table='compute-e1-043'>&nbsp;</td>
+      <td id='tdc_m_compute-e1-044' onclick="table_cell_click('compute-e1-044');" table='compute-e1-044'>&nbsp;</td>
+      <td id='tdc_m_compute-e1-063' onclick="table_cell_click('compute-e1-063');" table='compute-e1-063'>&nbsp;</td>
+      <td id='tdc_m_compute-e1-064' onclick="table_cell_click('compute-e1-064');" table='compute-e1-064'>&nbsp;</td>
+      <td id='tdc_m_compute-e1-065' onclick="table_cell_click('compute-e1-065');" table='compute-e1-065'>&nbsp;</td>
+      <td id='tdc_m_compute-e1-066' onclick="table_cell_click('compute-e1-066');" table='compute-e1-066'>&nbsp;</td>
+      <td id='tdc_m_compute-e1-067' onclick="table_cell_click('compute-e1-067');" table='compute-e1-067'>&nbsp;</td>
+      <td id='tdc_m_compute-e1-068' onclick="table_cell_click('compute-e1-068');" table='compute-e1-068'>&nbsp;</td>
+      <td id='tdc_m_compute-e1-069' onclick="table_cell_click('compute-e1-069');" table='compute-e1-069'>&nbsp;</td>
+      <td id='tdc_m_compute-e1-070' onclick="table_cell_click('compute-e1-070');" table='compute-e1-070'>&nbsp;</td>
+      <td id='tdc_m_compute-e1-071' onclick="table_cell_click('compute-e1-071');" table='compute-e1-071'>&nbsp;</td>
+      <td id='tdc_m_compute-e1-072' onclick="table_cell_click('compute-e1-072');" table='compute-e1-072'>&nbsp;</td>
+      <td id='tdc_m_compute-e1-073' onclick="table_cell_click('compute-e1-073');" table='compute-e1-073'>&nbsp;</td>
+      <td id='tdc_m_compute-e1-074' onclick="table_cell_click('compute-e1-074');" table='compute-e1-074'>&nbsp;</td>
+      </tr>
+      <tr>
+      <td id='tdc_m_compute-e1-075' onclick="table_cell_click('compute-e1-075');" table='compute-e1-075'>&nbsp;</td>
+      <td id='tdc_m_compute-e1-076' onclick="table_cell_click('compute-e1-076');" table='compute-e1-076'>&nbsp;</td>
+      <td id='tdc_m_compute-e1-077' onclick="table_cell_click('compute-e1-077');" table='compute-e1-077'>&nbsp;</td>
+      <td id='tdc_m_compute-e1-078' onclick="table_cell_click('compute-e1-078');" table='compute-e1-078'>&nbsp;</td>
+      <td id='tdc_m_compute-e1-079' onclick="table_cell_click('compute-e1-079');" table='compute-e1-079'>&nbsp;</td>
+      <td id='tdc_m_compute-e1-080' onclick="table_cell_click('compute-e1-080');" table='compute-e1-080'>&nbsp;</td>
+      <td id='tdc_m_compute-e1-081' onclick="table_cell_click('compute-e1-081');" table='compute-e1-081'>&nbsp;</td>
+      <td id='tdc_m_compute-e1-082' onclick="table_cell_click('compute-e1-082');" table='compute-e1-082'>&nbsp;</td>
+      <td id='tdc_m_compute-bigmem-001' onclick="table_cell_click('compute-bigmem-001');" table='compute-bigmem-001'>&nbsp;</td>
+      <td id='tdc_m_compute-bigmem-003' onclick="table_cell_click('compute-bigmem-003');" table='compute-bigmem-003'>&nbsp;</td>
+      <td id='tdc_m_compute-bigmem-004' onclick="table_cell_click('compute-bigmem-004');" table='compute-bigmem-004'>&nbsp;</td>
+      <td id='tdc_m_compute-cs-001' onclick="table_cell_click('compute-cs-001');" table='compute-cs-001'>&nbsp;</td>
+      <td id='tdc_m_compute-chem-001' onclick="table_cell_click('compute-chem-001');" table='compute-chem-001'>&nbsp;</td>
+      <td id='tdc_m_compute-fmhs-001' onclick="table_cell_click('compute-fmhs-001');" table='compute-fmhs-001'>&nbsp;</td>
+      <td id='tdc_m_compute-bigmem-002' onclick="table_cell_click('compute-bigmem-002');" table='compute-bigmem-002'>&nbsp;</td>
+      <td class=empty>&nbsp;</td>
+      <td class=empty>&nbsp;</td>
+      <td class=empty>&nbsp;</td>
+      <td class=empty>&nbsp;</td>
+      <td class=empty>&nbsp;</td>
+      <td class=empty>&nbsp;</td>
+      </tr>
+      <tr><th colspan=21 align='right' id='tdc_m_date_stamp'>&nbsp;</th></tr>
+      </table>
+  </td>
+  <td>
+      <table id='tdc_r' class='rack'>
+      <tr><th colspan=21 align='right'>
+        <select id="tdc_r_view" onchange="recolor()">
+          <option value="cpusdeviation" selected>CPU cores: discrepancy used vs requested</option>
+          <option value="cpusreq">CPU cores: requested usage</option>
+          <option value="cpusused">CPU cores: actual usage</option>
+          <option value="memdeviation">Memory: discrepancy used vs requested</option>
+          <option value="memreq">Memory: requested usage</option>
+          <option value="memused">Memory: actual usage</option>
+        </select>
+      </th></tr>
+      <tr>
+      <td id='tdc_r_compute-a1-001' onclick="table_cell_click('compute-a1-001');" table='compute-a1-001'>&nbsp;</td>
+      <td id='tdc_r_compute-a1-002' onclick="table_cell_click('compute-a1-002');" table='compute-a1-002'>&nbsp;</td>
+      <td id='tdc_r_compute-a1-003' onclick="table_cell_click('compute-a1-003');" table='compute-a1-003'>&nbsp;</td>
+      <td id='tdc_r_compute-a1-004' onclick="table_cell_click('compute-a1-004');" table='compute-a1-004'>&nbsp;</td>
+      <td id='tdc_r_compute-a1-005' onclick="table_cell_click('compute-a1-005');" table='compute-a1-005'>&nbsp;</td>
+      <td id='tdc_r_compute-a1-006' onclick="table_cell_click('compute-a1-006');" table='compute-a1-006'>&nbsp;</td>
+      <td id='tdc_r_compute-a1-007' onclick="table_cell_click('compute-a1-007');" table='compute-a1-007'>&nbsp;</td>
+      <td id='tdc_r_compute-a1-008' onclick="table_cell_click('compute-a1-008');" table='compute-a1-008'>&nbsp;</td>
+      <td id='tdc_r_compute-a1-009' onclick="table_cell_click('compute-a1-009');" table='compute-a1-009'>&nbsp;</td>
+      <td id='tdc_r_compute-a1-010' onclick="table_cell_click('compute-a1-010');" table='compute-a1-010'>&nbsp;</td>
+      <td id='tdc_r_compute-a1-011' onclick="table_cell_click('compute-a1-011');" table='compute-a1-011'>&nbsp;</td>
+      <td id='tdc_r_compute-a1-012' onclick="table_cell_click('compute-a1-012');" table='compute-a1-012'>&nbsp;</td>
+      <td id='tdc_r_compute-a1-013' onclick="table_cell_click('compute-a1-013');" table='compute-a1-013'>&nbsp;</td>
+      <td id='tdc_r_compute-a1-014' onclick="table_cell_click('compute-a1-014');" table='compute-a1-014'>&nbsp;</td>
+      <td id='tdc_r_compute-a1-015' onclick="table_cell_click('compute-a1-015');" table='compute-a1-015'>&nbsp;</td>
+      <td id='tdc_r_compute-a1-016' onclick="table_cell_click('compute-a1-016');" table='compute-a1-016'>&nbsp;</td>
+      <td id='tdc_r_compute-a1-017' onclick="table_cell_click('compute-a1-017');" table='compute-a1-017'>&nbsp;</td>
+      <td id='tdc_r_compute-a1-018' onclick="table_cell_click('compute-a1-018');" table='compute-a1-018'>&nbsp;</td>
+      <td id='tdc_r_compute-a1-019' onclick="table_cell_click('compute-a1-019');" table='compute-a1-019'>&nbsp;</td>
+      <td id='tdc_r_compute-a1-020' onclick="table_cell_click('compute-a1-020');" table='compute-a1-020'>&nbsp;</td>
+      <td id='tdc_r_compute-a1-021' onclick="table_cell_click('compute-a1-021');" table='compute-a1-021'>&nbsp;</td>
+      </tr>
+      <tr>
+      <td id='tdc_r_compute-a1-022' onclick="table_cell_click('compute-a1-022');" table='compute-a1-022'>&nbsp;</td>
+      <td id='tdc_r_compute-a1-023' onclick="table_cell_click('compute-a1-023');" table='compute-a1-023'>&nbsp;</td>
+      <td id='tdc_r_compute-a1-024' onclick="table_cell_click('compute-a1-024');" table='compute-a1-024'>&nbsp;</td>
+      <td id='tdc_r_compute-a1-025' onclick="table_cell_click('compute-a1-025');" table='compute-a1-025'>&nbsp;</td>
+      <td id='tdc_r_compute-a1-026' onclick="table_cell_click('compute-a1-026');" table='compute-a1-026'>&nbsp;</td>
+      <td id='tdc_r_compute-a1-027' onclick="table_cell_click('compute-a1-027');" table='compute-a1-027'>&nbsp;</td>
+      <td id='tdc_r_compute-a1-028' onclick="table_cell_click('compute-a1-028');" table='compute-a1-028'>&nbsp;</td>
+      <td id='tdc_r_compute-a1-029' onclick="table_cell_click('compute-a1-029');" table='compute-a1-029'>&nbsp;</td>
+      <td id='tdc_r_compute-a1-030' onclick="table_cell_click('compute-a1-030');" table='compute-a1-030'>&nbsp;</td>
+      <td id='tdc_r_compute-a1-031' onclick="table_cell_click('compute-a1-031');" table='compute-a1-031'>&nbsp;</td>
+      <td id='tdc_r_compute-a1-032' onclick="table_cell_click('compute-a1-032');" table='compute-a1-032'>&nbsp;</td>
+      <td id='tdc_r_compute-a1-033' onclick="table_cell_click('compute-a1-033');" table='compute-a1-033'>&nbsp;</td>
+      <td id='tdc_r_compute-a1-034' onclick="table_cell_click('compute-a1-034');" table='compute-a1-034'>&nbsp;</td>
+      <td id='tdc_r_compute-a1-035' onclick="table_cell_click('compute-a1-035');" table='compute-a1-035'>&nbsp;</td>
+      <td id='tdc_r_compute-a1-036' onclick="table_cell_click('compute-a1-036');" table='compute-a1-036'>&nbsp;</td>
+      <td id='tdc_r_compute-a1-037' onclick="table_cell_click('compute-a1-037');" table='compute-a1-037'>&nbsp;</td>
+      <td id='tdc_r_compute-a1-038' onclick="table_cell_click('compute-a1-038');" table='compute-a1-038'>&nbsp;</td>
+      <td id='tdc_r_compute-a1-039' onclick="table_cell_click('compute-a1-039');" table='compute-a1-039'>&nbsp;</td>
+      <td id='tdc_r_compute-a1-040' onclick="table_cell_click('compute-a1-040');" table='compute-a1-040'>&nbsp;</td>
+      <td id='tdc_r_compute-a1-041' onclick="table_cell_click('compute-a1-041');" table='compute-a1-041'>&nbsp;</td>
+      <td id='tdc_r_compute-a1-042' onclick="table_cell_click('compute-a1-042');" table='compute-a1-042'>&nbsp;</td>
+      </tr>
+      <tr>
+      <td id='tdc_r_compute-a1-043' onclick="table_cell_click('compute-a1-043');" table='compute-a1-043'>&nbsp;</td>
+      <td id='tdc_r_compute-a1-044' onclick="table_cell_click('compute-a1-044');" table='compute-a1-044'>&nbsp;</td>
+      <td id='tdc_r_compute-a1-045' onclick="table_cell_click('compute-a1-045');" table='compute-a1-045'>&nbsp;</td>
+      <td id='tdc_r_compute-a1-046' onclick="table_cell_click('compute-a1-046');" table='compute-a1-046'>&nbsp;</td>
+      <td id='tdc_r_compute-a1-047' onclick="table_cell_click('compute-a1-047');" table='compute-a1-047'>&nbsp;</td>
+      <td id='tdc_r_compute-a1-048' onclick="table_cell_click('compute-a1-048');" table='compute-a1-048'>&nbsp;</td>
+      <td id='tdc_r_compute-a1-049' onclick="table_cell_click('compute-a1-049');" table='compute-a1-049'>&nbsp;</td>
+      <td id='tdc_r_compute-a1-050' onclick="table_cell_click('compute-a1-050');" table='compute-a1-050'>&nbsp;</td>
+      <td id='tdc_r_compute-a1-051' onclick="table_cell_click('compute-a1-051');" table='compute-a1-051'>&nbsp;</td>
+      <td id='tdc_r_compute-a1-052' onclick="table_cell_click('compute-a1-052');" table='compute-a1-052'>&nbsp;</td>
+      <td id='tdc_r_compute-a1-053' onclick="table_cell_click('compute-a1-053');" table='compute-a1-053'>&nbsp;</td>
+      <td id='tdc_r_compute-a1-054' onclick="table_cell_click('compute-a1-054');" table='compute-a1-054'>&nbsp;</td>
+      <td id='tdc_r_compute-a1-055' onclick="table_cell_click('compute-a1-055');" table='compute-a1-055'>&nbsp;</td>
+      <td id='tdc_r_compute-a1-056' onclick="table_cell_click('compute-a1-056');" table='compute-a1-056'>&nbsp;</td>
+      <td id='tdc_r_compute-gpu-a1-001' onclick="table_cell_click('compute-gpu-a1-001');" table='compute-gpu-a1-001'>&nbsp;</td>
+      <td id='tdc_r_compute-gpu-a1-002' onclick="table_cell_click('compute-gpu-a1-002');" table='compute-gpu-a1-002'>&nbsp;</td>
+      <td id='tdc_r_compute-gpu-a1-003' onclick="table_cell_click('compute-gpu-a1-003');" table='compute-gpu-a1-003'>&nbsp;</td>
+      <td id='tdc_r_compute-gpu-a1-004' onclick="table_cell_click('compute-gpu-a1-004');" table='compute-gpu-a1-004'>&nbsp;</td>
+      <td id='tdc_r_compute-a1-057' onclick="table_cell_click('compute-a1-057');" table='compute-a1-057'>&nbsp;</td>
+      <td id='tdc_r_compute-a1-058' onclick="table_cell_click('compute-a1-058');" table='compute-a1-058'>&nbsp;</td>
+      <td id='tdc_r_compute-a1-059' onclick="table_cell_click('compute-a1-059');" table='compute-a1-059'>&nbsp;</td>
+      </tr>
+      <tr>
+      <td id='tdc_r_compute-a1-060' onclick="table_cell_click('compute-a1-060');" table='compute-a1-060'>&nbsp;</td>
+      <td id='tdc_r_compute-a1-061' onclick="table_cell_click('compute-a1-061');" table='compute-a1-061'>&nbsp;</td>
+      <td id='tdc_r_compute-a1-062' onclick="table_cell_click('compute-a1-062');" table='compute-a1-062'>&nbsp;</td>
+      <td id='tdc_r_compute-a1-063' onclick="table_cell_click('compute-a1-063');" table='compute-a1-063'>&nbsp;</td>
+      <td id='tdc_r_compute-a1-064' onclick="table_cell_click('compute-a1-064');" table='compute-a1-064'>&nbsp;</td>
+      <td id='tdc_r_compute-a1-065' onclick="table_cell_click('compute-a1-065');" table='compute-a1-065'>&nbsp;</td>
+      <td id='tdc_r_compute-a1-066' onclick="table_cell_click('compute-a1-066');" table='compute-a1-066'>&nbsp;</td>
+      <td id='tdc_r_compute-a1-067' onclick="table_cell_click('compute-a1-067');" table='compute-a1-067'>&nbsp;</td>
+      <td id='tdc_r_compute-a1-068' onclick="table_cell_click('compute-a1-068');" table='compute-a1-068'>&nbsp;</td>
+      <td id='tdc_r_compute-a1-069' onclick="table_cell_click('compute-a1-069');" table='compute-a1-069'>&nbsp;</td>
+      <td id='tdc_r_compute-a1-070' onclick="table_cell_click('compute-a1-070');" table='compute-a1-070'>&nbsp;</td>
+      <td id='tdc_r_compute-a1-071' onclick="table_cell_click('compute-a1-071');" table='compute-a1-071'>&nbsp;</td>
+      <td id='tdc_r_compute-a1-072' onclick="table_cell_click('compute-a1-072');" table='compute-a1-072'>&nbsp;</td>
+      <td id='tdc_r_compute-a1-073' onclick="table_cell_click('compute-a1-073');" table='compute-a1-073'>&nbsp;</td>
+      <td id='tdc_r_compute-a1-074' onclick="table_cell_click('compute-a1-074');" table='compute-a1-074'>&nbsp;</td>
+      <td id='tdc_r_compute-a1-075' onclick="table_cell_click('compute-a1-075');" table='compute-a1-075'>&nbsp;</td>
+      <td id='tdc_r_compute-a1-076' onclick="table_cell_click('compute-a1-076');" table='compute-a1-076'>&nbsp;</td>
+      <td id='tdc_r_compute-b1-001' onclick="table_cell_click('compute-b1-001');" table='compute-b1-001'>&nbsp;</td>
+      <td id='tdc_r_compute-b1-002' onclick="table_cell_click('compute-b1-002');" table='compute-b1-002'>&nbsp;</td>
+      <td id='tdc_r_compute-b1-003' onclick="table_cell_click('compute-b1-003');" table='compute-b1-003'>&nbsp;</td>
+      <td id='tdc_r_compute-b1-004' onclick="table_cell_click('compute-b1-004');" table='compute-b1-004'>&nbsp;</td>
+      </tr>
+      <tr>
+      <td id='tdc_r_compute-b1-005' onclick="table_cell_click('compute-b1-005');" table='compute-b1-005'>&nbsp;</td>
+      <td id='tdc_r_compute-b1-006' onclick="table_cell_click('compute-b1-006');" table='compute-b1-006'>&nbsp;</td>
+      <td id='tdc_r_compute-b1-007' onclick="table_cell_click('compute-b1-007');" table='compute-b1-007'>&nbsp;</td>
+      <td id='tdc_r_compute-b1-008' onclick="table_cell_click('compute-b1-008');" table='compute-b1-008'>&nbsp;</td>
+      <td id='tdc_r_compute-b1-009' onclick="table_cell_click('compute-b1-009');" table='compute-b1-009'>&nbsp;</td>
+      <td id='tdc_r_compute-b1-010' onclick="table_cell_click('compute-b1-010');" table='compute-b1-010'>&nbsp;</td>
+      <td id='tdc_r_compute-b1-011' onclick="table_cell_click('compute-b1-011');" table='compute-b1-011'>&nbsp;</td>
+      <td id='tdc_r_compute-b1-012' onclick="table_cell_click('compute-b1-012');" table='compute-b1-012'>&nbsp;</td>
+      <td id='tdc_r_compute-b1-013' onclick="table_cell_click('compute-b1-013');" table='compute-b1-013'>&nbsp;</td>
+      <td id='tdc_r_compute-b1-014' onclick="table_cell_click('compute-b1-014');" table='compute-b1-014'>&nbsp;</td>
+      <td id='tdc_r_compute-b1-015' onclick="table_cell_click('compute-b1-015');" table='compute-b1-015'>&nbsp;</td>
+      <td id='tdc_r_compute-b1-016' onclick="table_cell_click('compute-b1-016');" table='compute-b1-016'>&nbsp;</td>
+      <td id='tdc_r_compute-b1-017' onclick="table_cell_click('compute-b1-017');" table='compute-b1-017'>&nbsp;</td>
+      <td id='tdc_r_compute-b1-018' onclick="table_cell_click('compute-b1-018');" table='compute-b1-018'>&nbsp;</td>
+      <td id='tdc_r_compute-b1-019' onclick="table_cell_click('compute-b1-019');" table='compute-b1-019'>&nbsp;</td>
+      <td id='tdc_r_compute-b1-020' onclick="table_cell_click('compute-b1-020');" table='compute-b1-020'>&nbsp;</td>
+      <td id='tdc_r_compute-b1-021' onclick="table_cell_click('compute-b1-021');" table='compute-b1-021'>&nbsp;</td>
+      <td id='tdc_r_compute-b1-022' onclick="table_cell_click('compute-b1-022');" table='compute-b1-022'>&nbsp;</td>
+      <td id='tdc_r_compute-b1-023' onclick="table_cell_click('compute-b1-023');" table='compute-b1-023'>&nbsp;</td>
+      <td id='tdc_r_compute-b1-024' onclick="table_cell_click('compute-b1-024');" table='compute-b1-024'>&nbsp;</td>
+      <td id='tdc_r_compute-b1-025' onclick="table_cell_click('compute-b1-025');" table='compute-b1-025'>&nbsp;</td>
+      </tr>
+      <tr>
+      <td id='tdc_r_compute-b1-026' onclick="table_cell_click('compute-b1-026');" table='compute-b1-026'>&nbsp;</td>
+      <td id='tdc_r_compute-b1-027' onclick="table_cell_click('compute-b1-027');" table='compute-b1-027'>&nbsp;</td>
+      <td id='tdc_r_compute-b1-028' onclick="table_cell_click('compute-b1-028');" table='compute-b1-028'>&nbsp;</td>
+      <td id='tdc_r_compute-b1-029' onclick="table_cell_click('compute-b1-029');" table='compute-b1-029'>&nbsp;</td>
+      <td id='tdc_r_compute-b1-030' onclick="table_cell_click('compute-b1-030');" table='compute-b1-030'>&nbsp;</td>
+      <td id='tdc_r_compute-b1-031' onclick="table_cell_click('compute-b1-031');" table='compute-b1-031'>&nbsp;</td>
+      <td id='tdc_r_compute-b1-032' onclick="table_cell_click('compute-b1-032');" table='compute-b1-032'>&nbsp;</td>
+      <td id='tdc_r_compute-b1-033' onclick="table_cell_click('compute-b1-033');" table='compute-b1-033'>&nbsp;</td>
+      <td id='tdc_r_compute-b1-034' onclick="table_cell_click('compute-b1-034');" table='compute-b1-034'>&nbsp;</td>
+      <td id='tdc_r_compute-gpu-b1-001' onclick="table_cell_click('compute-gpu-b1-001');" table='compute-gpu-b1-001'>&nbsp;</td>
+      <td id='tdc_r_compute-gpu-b1-002' onclick="table_cell_click('compute-gpu-b1-002');" table='compute-gpu-b1-002'>&nbsp;</td>
+      <td id='tdc_r_compute-gpu-b1-003' onclick="table_cell_click('compute-gpu-b1-003');" table='compute-gpu-b1-003'>&nbsp;</td>
+      <td id='tdc_r_compute-gpu-b1-004' onclick="table_cell_click('compute-gpu-b1-004');" table='compute-gpu-b1-004'>&nbsp;</td>
+      <td id='tdc_r_compute-b1-035' onclick="table_cell_click('compute-b1-035');" table='compute-b1-035'>&nbsp;</td>
+      <td id='tdc_r_compute-b1-036' onclick="table_cell_click('compute-b1-036');" table='compute-b1-036'>&nbsp;</td>
+      <td id='tdc_r_compute-b1-037' onclick="table_cell_click('compute-b1-037');" table='compute-b1-037'>&nbsp;</td>
+      <td id='tdc_r_compute-b1-038' onclick="table_cell_click('compute-b1-038');" table='compute-b1-038'>&nbsp;</td>
+      <td id='tdc_r_compute-b1-039' onclick="table_cell_click('compute-b1-039');" table='compute-b1-039'>&nbsp;</td>
+      <td id='tdc_r_compute-b1-040' onclick="table_cell_click('compute-b1-040');" table='compute-b1-040'>&nbsp;</td>
+      <td id='tdc_r_compute-b1-041' onclick="table_cell_click('compute-b1-041');" table='compute-b1-041'>&nbsp;</td>
+      <td id='tdc_r_compute-b1-042' onclick="table_cell_click('compute-b1-042');" table='compute-b1-042'>&nbsp;</td>
+      </tr>
+      <tr>
+      <td id='tdc_r_compute-b1-043' onclick="table_cell_click('compute-b1-043');" table='compute-b1-043'>&nbsp;</td>
+      <td id='tdc_r_compute-b1-044' onclick="table_cell_click('compute-b1-044');" table='compute-b1-044'>&nbsp;</td>
+      <td id='tdc_r_compute-b1-045' onclick="table_cell_click('compute-b1-045');" table='compute-b1-045'>&nbsp;</td>
+      <td id='tdc_r_compute-b1-046' onclick="table_cell_click('compute-b1-046');" table='compute-b1-046'>&nbsp;</td>
+      <td id='tdc_r_compute-b1-047' onclick="table_cell_click('compute-b1-047');" table='compute-b1-047'>&nbsp;</td>
+      <td id='tdc_r_compute-b1-048' onclick="table_cell_click('compute-b1-048');" table='compute-b1-048'>&nbsp;</td>
+      <td id='tdc_r_compute-b1-049' onclick="table_cell_click('compute-b1-049');" table='compute-b1-049'>&nbsp;</td>
+      <td id='tdc_r_compute-b1-050' onclick="table_cell_click('compute-b1-050');" table='compute-b1-050'>&nbsp;</td>
+      <td id='tdc_r_compute-b1-051' onclick="table_cell_click('compute-b1-051');" table='compute-b1-051'>&nbsp;</td>
+      <td id='tdc_r_compute-b1-052' onclick="table_cell_click('compute-b1-052');" table='compute-b1-052'>&nbsp;</td>
+      <td id='tdc_r_compute-b1-053' onclick="table_cell_click('compute-b1-053');" table='compute-b1-053'>&nbsp;</td>
+      <td id='tdc_r_compute-b1-054' onclick="table_cell_click('compute-b1-054');" table='compute-b1-054'>&nbsp;</td>
+      <td id='tdc_r_compute-b1-055' onclick="table_cell_click('compute-b1-055');" table='compute-b1-055'>&nbsp;</td>
+      <td id='tdc_r_compute-b1-056' onclick="table_cell_click('compute-b1-056');" table='compute-b1-056'>&nbsp;</td>
+      <td id='tdc_r_compute-b1-057' onclick="table_cell_click('compute-b1-057');" table='compute-b1-057'>&nbsp;</td>
+      <td id='tdc_r_compute-b1-058' onclick="table_cell_click('compute-b1-058');" table='compute-b1-058'>&nbsp;</td>
+      <td id='tdc_r_compute-b1-059' onclick="table_cell_click('compute-b1-059');" table='compute-b1-059'>&nbsp;</td>
+      <td id='tdc_r_compute-b1-060' onclick="table_cell_click('compute-b1-060');" table='compute-b1-060'>&nbsp;</td>
+      <td id='tdc_r_compute-b1-061' onclick="table_cell_click('compute-b1-061');" table='compute-b1-061'>&nbsp;</td>
+      <td id='tdc_r_compute-b1-062' onclick="table_cell_click('compute-b1-062');" table='compute-b1-062'>&nbsp;</td>
+      <td id='tdc_r_compute-b1-063' onclick="table_cell_click('compute-b1-063');" table='compute-b1-063'>&nbsp;</td>
+      </tr>
+      <tr>
+      <td id='tdc_r_compute-b1-064' onclick="table_cell_click('compute-b1-064');" table='compute-b1-064'>&nbsp;</td>
+      <td id='tdc_r_compute-b1-065' onclick="table_cell_click('compute-b1-065');" table='compute-b1-065'>&nbsp;</td>
+      <td id='tdc_r_compute-b1-066' onclick="table_cell_click('compute-b1-066');" table='compute-b1-066'>&nbsp;</td>
+      <td id='tdc_r_compute-b1-067' onclick="table_cell_click('compute-b1-067');" table='compute-b1-067'>&nbsp;</td>
+      <td id='tdc_r_compute-b1-068' onclick="table_cell_click('compute-b1-068');" table='compute-b1-068'>&nbsp;</td>
+      <td id='tdc_r_compute-gpu-b1-005' onclick="table_cell_click('compute-gpu-b1-005');" table='compute-gpu-b1-005'>&nbsp;</td>
+      <td id='tdc_r_compute-gpu-b1-006' onclick="table_cell_click('compute-gpu-b1-006');" table='compute-gpu-b1-006'>&nbsp;</td>
+      <td id='tdc_r_compute-gpu-b1-007' onclick="table_cell_click('compute-gpu-b1-007');" table='compute-gpu-b1-007'>&nbsp;</td>
+      <td id='tdc_r_compute-gpu-b1-008' onclick="table_cell_click('compute-gpu-b1-008');" table='compute-gpu-b1-008'>&nbsp;</td>
+      <td id='tdc_r_compute-c1-001' onclick="table_cell_click('compute-c1-001');" table='compute-c1-001'>&nbsp;</td>
+      <td id='tdc_r_compute-c1-002' onclick="table_cell_click('compute-c1-002');" table='compute-c1-002'>&nbsp;</td>
+      <td id='tdc_r_compute-c1-003' onclick="table_cell_click('compute-c1-003');" table='compute-c1-003'>&nbsp;</td>
+      <td id='tdc_r_compute-c1-004' onclick="table_cell_click('compute-c1-004');" table='compute-c1-004'>&nbsp;</td>
+      <td id='tdc_r_compute-c1-005' onclick="table_cell_click('compute-c1-005');" table='compute-c1-005'>&nbsp;</td>
+      <td id='tdc_r_compute-c1-006' onclick="table_cell_click('compute-c1-006');" table='compute-c1-006'>&nbsp;</td>
+      <td id='tdc_r_compute-c1-007' onclick="table_cell_click('compute-c1-007');" table='compute-c1-007'>&nbsp;</td>
+      <td id='tdc_r_compute-c1-008' onclick="table_cell_click('compute-c1-008');" table='compute-c1-008'>&nbsp;</td>
+      <td id='tdc_r_compute-c1-009' onclick="table_cell_click('compute-c1-009');" table='compute-c1-009'>&nbsp;</td>
+      <td id='tdc_r_compute-c1-010' onclick="table_cell_click('compute-c1-010');" table='compute-c1-010'>&nbsp;</td>
+      <td id='tdc_r_compute-c1-011' onclick="table_cell_click('compute-c1-011');" table='compute-c1-011'>&nbsp;</td>
+      <td id='tdc_r_compute-c1-012' onclick="table_cell_click('compute-c1-012');" table='compute-c1-012'>&nbsp;</td>
+      </tr>
+      <tr>
+      <td id='tdc_r_compute-c1-013' onclick="table_cell_click('compute-c1-013');" table='compute-c1-013'>&nbsp;</td>
+      <td id='tdc_r_compute-c1-014' onclick="table_cell_click('compute-c1-014');" table='compute-c1-014'>&nbsp;</td>
+      <td id='tdc_r_compute-c1-015' onclick="table_cell_click('compute-c1-015');" table='compute-c1-015'>&nbsp;</td>
+      <td id='tdc_r_compute-c1-016' onclick="table_cell_click('compute-c1-016');" table='compute-c1-016'>&nbsp;</td>
+      <td id='tdc_r_compute-c1-017' onclick="table_cell_click('compute-c1-017');" table='compute-c1-017'>&nbsp;</td>
+      <td id='tdc_r_compute-c1-018' onclick="table_cell_click('compute-c1-018');" table='compute-c1-018'>&nbsp;</td>
+      <td id='tdc_r_compute-c1-019' onclick="table_cell_click('compute-c1-019');" table='compute-c1-019'>&nbsp;</td>
+      <td id='tdc_r_compute-c1-020' onclick="table_cell_click('compute-c1-020');" table='compute-c1-020'>&nbsp;</td>
+      <td id='tdc_r_compute-c1-021' onclick="table_cell_click('compute-c1-021');" table='compute-c1-021'>&nbsp;</td>
+      <td id='tdc_r_compute-c1-022' onclick="table_cell_click('compute-c1-022');" table='compute-c1-022'>&nbsp;</td>
+      <td id='tdc_r_compute-c1-023' onclick="table_cell_click('compute-c1-023');" table='compute-c1-023'>&nbsp;</td>
+      <td id='tdc_r_compute-c1-024' onclick="table_cell_click('compute-c1-024');" table='compute-c1-024'>&nbsp;</td>
+      <td id='tdc_r_compute-c1-025' onclick="table_cell_click('compute-c1-025');" table='compute-c1-025'>&nbsp;</td>
+      <td id='tdc_r_compute-c1-026' onclick="table_cell_click('compute-c1-026');" table='compute-c1-026'>&nbsp;</td>
+      <td id='tdc_r_compute-c1-027' onclick="table_cell_click('compute-c1-027');" table='compute-c1-027'>&nbsp;</td>
+      <td id='tdc_r_compute-c1-028' onclick="table_cell_click('compute-c1-028');" table='compute-c1-028'>&nbsp;</td>
+      <td id='tdc_r_compute-gpu-c1-001' onclick="table_cell_click('compute-gpu-c1-001');" table='compute-gpu-c1-001'>&nbsp;</td>
+      <td id='tdc_r_compute-gpu-c1-002' onclick="table_cell_click('compute-gpu-c1-002');" table='compute-gpu-c1-002'>&nbsp;</td>
+      <td id='tdc_r_compute-cs-002' onclick="table_cell_click('compute-cs-002');" table='compute-cs-002'>&nbsp;</td>
+      <td id='tdc_r_compute-stats-002' onclick="table_cell_click('compute-stats-002');" table='compute-stats-002'>&nbsp;</td>
+      <td id='tdc_r_compute-stats-003' onclick="table_cell_click('compute-stats-003');" table='compute-stats-003'>&nbsp;</td>
+      </tr>
+      <tr>
+      <td id='tdc_r_compute-c1-059' onclick="table_cell_click('compute-c1-059');" table='compute-c1-059'>&nbsp;</td>
+      <td id='tdc_r_compute-c1-060' onclick="table_cell_click('compute-c1-060');" table='compute-c1-060'>&nbsp;</td>
+      <td id='tdc_r_compute-c1-029' onclick="table_cell_click('compute-c1-029');" table='compute-c1-029'>&nbsp;</td>
+      <td id='tdc_r_compute-c1-030' onclick="table_cell_click('compute-c1-030');" table='compute-c1-030'>&nbsp;</td>
+      <td id='tdc_r_compute-c1-031' onclick="table_cell_click('compute-c1-031');" table='compute-c1-031'>&nbsp;</td>
+      <td id='tdc_r_compute-c1-032' onclick="table_cell_click('compute-c1-032');" table='compute-c1-032'>&nbsp;</td>
+      <td id='tdc_r_compute-c1-033' onclick="table_cell_click('compute-c1-033');" table='compute-c1-033'>&nbsp;</td>
+      <td id='tdc_r_compute-c1-034' onclick="table_cell_click('compute-c1-034');" table='compute-c1-034'>&nbsp;</td>
+      <td id='tdc_r_compute-c1-035' onclick="table_cell_click('compute-c1-035');" table='compute-c1-035'>&nbsp;</td>
+      <td id='tdc_r_compute-c1-036' onclick="table_cell_click('compute-c1-036');" table='compute-c1-036'>&nbsp;</td>
+      <td id='tdc_r_compute-c1-037' onclick="table_cell_click('compute-c1-037');" table='compute-c1-037'>&nbsp;</td>
+      <td id='tdc_r_compute-c1-038' onclick="table_cell_click('compute-c1-038');" table='compute-c1-038'>&nbsp;</td>
+      <td id='tdc_r_compute-c1-039' onclick="table_cell_click('compute-c1-039');" table='compute-c1-039'>&nbsp;</td>
+      <td id='tdc_r_compute-c1-040' onclick="table_cell_click('compute-c1-040');" table='compute-c1-040'>&nbsp;</td>
+      <td id='tdc_r_compute-c1-041' onclick="table_cell_click('compute-c1-041');" table='compute-c1-041'>&nbsp;</td>
+      <td id='tdc_r_compute-c1-042' onclick="table_cell_click('compute-c1-042');" table='compute-c1-042'>&nbsp;</td>
+      <td id='tdc_r_compute-c1-043' onclick="table_cell_click('compute-c1-043');" table='compute-c1-043'>&nbsp;</td>
+      <td id='tdc_r_compute-c1-044' onclick="table_cell_click('compute-c1-044');" table='compute-c1-044'>&nbsp;</td>
+      <td id='tdc_r_compute-c1-045' onclick="table_cell_click('compute-c1-045');" table='compute-c1-045'>&nbsp;</td>
+      <td id='tdc_r_compute-c1-046' onclick="table_cell_click('compute-c1-046');" table='compute-c1-046'>&nbsp;</td>
+      <td id='tdc_r_compute-c1-047' onclick="table_cell_click('compute-c1-047');" table='compute-c1-047'>&nbsp;</td>
+      </tr>
+      <tr>
+      <td id='tdc_r_compute-c1-048' onclick="table_cell_click('compute-c1-048');" table='compute-c1-048'>&nbsp;</td>
+      <td id='tdc_r_compute-c1-049' onclick="table_cell_click('compute-c1-049');" table='compute-c1-049'>&nbsp;</td>
+      <td id='tdc_r_compute-c1-050' onclick="table_cell_click('compute-c1-050');" table='compute-c1-050'>&nbsp;</td>
+      <td id='tdc_r_compute-c1-051' onclick="table_cell_click('compute-c1-051');" table='compute-c1-051'>&nbsp;</td>
+      <td id='tdc_r_compute-c1-052' onclick="table_cell_click('compute-c1-052');" table='compute-c1-052'>&nbsp;</td>
+      <td id='tdc_r_compute-c1-053' onclick="table_cell_click('compute-c1-053');" table='compute-c1-053'>&nbsp;</td>
+      <td id='tdc_r_compute-c1-054' onclick="table_cell_click('compute-c1-054');" table='compute-c1-054'>&nbsp;</td>
+      <td id='tdc_r_compute-c1-055' onclick="table_cell_click('compute-c1-055');" table='compute-c1-055'>&nbsp;</td>
+      <td id='tdc_r_compute-c1-056' onclick="table_cell_click('compute-c1-056');" table='compute-c1-056'>&nbsp;</td>
+      <td id='tdc_r_compute-gpu-c1-003' onclick="table_cell_click('compute-gpu-c1-003');" table='compute-gpu-c1-003'>&nbsp;</td>
+      <td id='tdc_r_compute-gpu-c1-004' onclick="table_cell_click('compute-gpu-c1-004');" table='compute-gpu-c1-004'>&nbsp;</td>
+      <td id='tdc_r_compute-stats-004' onclick="table_cell_click('compute-stats-004');" table='compute-stats-004'>&nbsp;</td>
+      <td id='tdc_r_compute-stats-005' onclick="table_cell_click('compute-stats-005');" table='compute-stats-005'>&nbsp;</td>
+      <td id='tdc_r_compute-c1-057' onclick="table_cell_click('compute-c1-057');" table='compute-c1-057'>&nbsp;</td>
+      <td id='tdc_r_compute-c1-058' onclick="table_cell_click('compute-c1-058');" table='compute-c1-058'>&nbsp;</td>
+      <td id='tdc_r_compute-cs-003' onclick="table_cell_click('compute-cs-003');" table='compute-cs-003'>&nbsp;</td>
+      <td id='tdc_r_compute-physics-001' onclick="table_cell_click('compute-physics-001');" table='compute-physics-001'>&nbsp;</td>
+      <td id='tdc_r_compute-d1-001' onclick="table_cell_click('compute-d1-001');" table='compute-d1-001'>&nbsp;</td>
+      <td id='tdc_r_compute-d1-002' onclick="table_cell_click('compute-d1-002');" table='compute-d1-002'>&nbsp;</td>
+      <td id='tdc_r_compute-d1-003' onclick="table_cell_click('compute-d1-003');" table='compute-d1-003'>&nbsp;</td>
+      <td id='tdc_r_compute-d1-004' onclick="table_cell_click('compute-d1-004');" table='compute-d1-004'>&nbsp;</td>
+      </tr>
+      <tr>
+      <td id='tdc_r_compute-d1-005' onclick="table_cell_click('compute-d1-005');" table='compute-d1-005'>&nbsp;</td>
+      <td id='tdc_r_compute-d1-006' onclick="table_cell_click('compute-d1-006');" table='compute-d1-006'>&nbsp;</td>
+      <td id='tdc_r_compute-d1-007' onclick="table_cell_click('compute-d1-007');" table='compute-d1-007'>&nbsp;</td>
+      <td id='tdc_r_compute-d1-008' onclick="table_cell_click('compute-d1-008');" table='compute-d1-008'>&nbsp;</td>
+      <td id='tdc_r_compute-d1-009' onclick="table_cell_click('compute-d1-009');" table='compute-d1-009'>&nbsp;</td>
+      <td id='tdc_r_compute-d1-010' onclick="table_cell_click('compute-d1-010');" table='compute-d1-010'>&nbsp;</td>
+      <td id='tdc_r_compute-d1-011' onclick="table_cell_click('compute-d1-011');" table='compute-d1-011'>&nbsp;</td>
+      <td id='tdc_r_compute-d1-012' onclick="table_cell_click('compute-d1-012');" table='compute-d1-012'>&nbsp;</td>
+      <td id='tdc_r_compute-d1-013' onclick="table_cell_click('compute-d1-013');" table='compute-d1-013'>&nbsp;</td>
+      <td id='tdc_r_compute-d1-014' onclick="table_cell_click('compute-d1-014');" table='compute-d1-014'>&nbsp;</td>
+      <td id='tdc_r_compute-d1-015' onclick="table_cell_click('compute-d1-015');" table='compute-d1-015'>&nbsp;</td>
+      <td id='tdc_r_compute-d1-016' onclick="table_cell_click('compute-d1-016');" table='compute-d1-016'>&nbsp;</td>
+      <td id='tdc_r_compute-d1-017' onclick="table_cell_click('compute-d1-017');" table='compute-d1-017'>&nbsp;</td>
+      <td id='tdc_r_compute-d1-018' onclick="table_cell_click('compute-d1-018');" table='compute-d1-018'>&nbsp;</td>
+      <td id='tdc_r_compute-d1-019' onclick="table_cell_click('compute-d1-019');" table='compute-d1-019'>&nbsp;</td>
+      <td id='tdc_r_compute-d1-020' onclick="table_cell_click('compute-d1-020');" table='compute-d1-020'>&nbsp;</td>
+      <td id='tdc_r_compute-d1-021' onclick="table_cell_click('compute-d1-021');" table='compute-d1-021'>&nbsp;</td>
+      <td id='tdc_r_compute-d1-022' onclick="table_cell_click('compute-d1-022');" table='compute-d1-022'>&nbsp;</td>
+      <td id='tdc_r_compute-d1-023' onclick="table_cell_click('compute-d1-023');" table='compute-d1-023'>&nbsp;</td>
+      <td id='tdc_r_compute-d1-024' onclick="table_cell_click('compute-d1-024');" table='compute-d1-024'>&nbsp;</td>
+      <td id='tdc_r_compute-d1-025' onclick="table_cell_click('compute-d1-025');" table='compute-d1-025'>&nbsp;</td>
+      </tr>
+      <tr>
+      <td id='tdc_r_compute-d1-026' onclick="table_cell_click('compute-d1-026');" table='compute-d1-026'>&nbsp;</td>
+      <td id='tdc_r_compute-d1-027' onclick="table_cell_click('compute-d1-027');" table='compute-d1-027'>&nbsp;</td>
+      <td id='tdc_r_compute-d1-028' onclick="table_cell_click('compute-d1-028');" table='compute-d1-028'>&nbsp;</td>
+      <td id='tdc_r_compute-d1-029' onclick="table_cell_click('compute-d1-029');" table='compute-d1-029'>&nbsp;</td>
+      <td id='tdc_r_compute-d1-030' onclick="table_cell_click('compute-d1-030');" table='compute-d1-030'>&nbsp;</td>
+      <td id='tdc_r_compute-d1-031' onclick="table_cell_click('compute-d1-031');" table='compute-d1-031'>&nbsp;</td>
+      <td id='tdc_r_compute-d1-032' onclick="table_cell_click('compute-d1-032');" table='compute-d1-032'>&nbsp;</td>
+      <td id='tdc_r_compute-d1-033' onclick="table_cell_click('compute-d1-033');" table='compute-d1-033'>&nbsp;</td>
+      <td id='tdc_r_compute-d1-034' onclick="table_cell_click('compute-d1-034');" table='compute-d1-034'>&nbsp;</td>
+      <td id='tdc_r_compute-d1-035' onclick="table_cell_click('compute-d1-035');" table='compute-d1-035'>&nbsp;</td>
+      <td id='tdc_r_compute-d1-036' onclick="table_cell_click('compute-d1-036');" table='compute-d1-036'>&nbsp;</td>
+      <td id='tdc_r_compute-gpu-d1-001' onclick="table_cell_click('compute-gpu-d1-001');" table='compute-gpu-d1-001'>&nbsp;</td>
+      <td id='tdc_r_compute-gpu-d1-002' onclick="table_cell_click('compute-gpu-d1-002');" table='compute-gpu-d1-002'>&nbsp;</td>
+      <td id='tdc_r_compute-phi-d1-001' onclick="table_cell_click('compute-phi-d1-001');" table='compute-phi-d1-001'>&nbsp;</td>
+      <td id='tdc_r_compute-d1-037' onclick="table_cell_click('compute-d1-037');" table='compute-d1-037'>&nbsp;</td>
+      <td id='tdc_r_compute-d1-038' onclick="table_cell_click('compute-d1-038');" table='compute-d1-038'>&nbsp;</td>
+      <td id='tdc_r_compute-d1-039' onclick="table_cell_click('compute-d1-039');" table='compute-d1-039'>&nbsp;</td>
+      <td id='tdc_r_compute-d1-040' onclick="table_cell_click('compute-d1-040');" table='compute-d1-040'>&nbsp;</td>
+      <td id='tdc_r_compute-d1-041' onclick="table_cell_click('compute-d1-041');" table='compute-d1-041'>&nbsp;</td>
+      <td id='tdc_r_compute-d1-042' onclick="table_cell_click('compute-d1-042');" table='compute-d1-042'>&nbsp;</td>
+      <td id='tdc_r_compute-d1-043' onclick="table_cell_click('compute-d1-043');" table='compute-d1-043'>&nbsp;</td>
+      </tr>
+      <tr>
+      <td id='tdc_r_compute-d1-044' onclick="table_cell_click('compute-d1-044');" table='compute-d1-044'>&nbsp;</td>
+      <td id='tdc_r_compute-d1-045' onclick="table_cell_click('compute-d1-045');" table='compute-d1-045'>&nbsp;</td>
+      <td id='tdc_r_compute-d1-046' onclick="table_cell_click('compute-d1-046');" table='compute-d1-046'>&nbsp;</td>
+      <td id='tdc_r_compute-d1-047' onclick="table_cell_click('compute-d1-047');" table='compute-d1-047'>&nbsp;</td>
+      <td id='tdc_r_compute-d1-048' onclick="table_cell_click('compute-d1-048');" table='compute-d1-048'>&nbsp;</td>
+      <td id='tdc_r_compute-d1-049' onclick="table_cell_click('compute-d1-049');" table='compute-d1-049'>&nbsp;</td>
+      <td id='tdc_r_compute-d1-050' onclick="table_cell_click('compute-d1-050');" table='compute-d1-050'>&nbsp;</td>
+      <td id='tdc_r_compute-d1-051' onclick="table_cell_click('compute-d1-051');" table='compute-d1-051'>&nbsp;</td>
+      <td id='tdc_r_compute-d1-052' onclick="table_cell_click('compute-d1-052');" table='compute-d1-052'>&nbsp;</td>
+      <td id='tdc_r_compute-d1-053' onclick="table_cell_click('compute-d1-053');" table='compute-d1-053'>&nbsp;</td>
+      <td id='tdc_r_compute-d1-054' onclick="table_cell_click('compute-d1-054');" table='compute-d1-054'>&nbsp;</td>
+      <td id='tdc_r_compute-d1-055' onclick="table_cell_click('compute-d1-055');" table='compute-d1-055'>&nbsp;</td>
+      <td id='tdc_r_compute-d1-056' onclick="table_cell_click('compute-d1-056');" table='compute-d1-056'>&nbsp;</td>
+      <td id='tdc_r_compute-d1-057' onclick="table_cell_click('compute-d1-057');" table='compute-d1-057'>&nbsp;</td>
+      <td id='tdc_r_compute-d1-058' onclick="table_cell_click('compute-d1-058');" table='compute-d1-058'>&nbsp;</td>
+      <td id='tdc_r_compute-d1-059' onclick="table_cell_click('compute-d1-059');" table='compute-d1-059'>&nbsp;</td>
+      <td id='tdc_r_compute-d1-060' onclick="table_cell_click('compute-d1-060');" table='compute-d1-060'>&nbsp;</td>
+      <td id='tdc_r_compute-d1-061' onclick="table_cell_click('compute-d1-061');" table='compute-d1-061'>&nbsp;</td>
+      <td id='tdc_r_compute-d1-062' onclick="table_cell_click('compute-d1-062');" table='compute-d1-062'>&nbsp;</td>
+      <td id='tdc_r_compute-d1-063' onclick="table_cell_click('compute-d1-063');" table='compute-d1-063'>&nbsp;</td>
+      <td id='tdc_r_compute-d1-064' onclick="table_cell_click('compute-d1-064');" table='compute-d1-064'>&nbsp;</td>
+      </tr>
+      <tr>
+      <td id='tdc_r_compute-d1-065' onclick="table_cell_click('compute-d1-065');" table='compute-d1-065'>&nbsp;</td>
+      <td id='tdc_r_compute-d1-066' onclick="table_cell_click('compute-d1-066');" table='compute-d1-066'>&nbsp;</td>
+      <td id='tdc_r_compute-d1-067' onclick="table_cell_click('compute-d1-067');" table='compute-d1-067'>&nbsp;</td>
+      <td id='tdc_r_compute-d1-068' onclick="table_cell_click('compute-d1-068');" table='compute-d1-068'>&nbsp;</td>
+      <td id='tdc_r_compute-d1-069' onclick="table_cell_click('compute-d1-069');" table='compute-d1-069'>&nbsp;</td>
+      <td id='tdc_r_compute-d1-070' onclick="table_cell_click('compute-d1-070');" table='compute-d1-070'>&nbsp;</td>
+      <td id='tdc_r_compute-gpu-d1-003' onclick="table_cell_click('compute-gpu-d1-003');" table='compute-gpu-d1-003'>&nbsp;</td>
+      <td id='tdc_r_compute-gpu-d1-004' onclick="table_cell_click('compute-gpu-d1-004');" table='compute-gpu-d1-004'>&nbsp;</td>
+      <td id='tdc_r_compute-gpu-d1-005' onclick="table_cell_click('compute-gpu-d1-005');" table='compute-gpu-d1-005'>&nbsp;</td>
+      <td id='tdc_r_compute-phi-d1-002' onclick="table_cell_click('compute-phi-d1-002');" table='compute-phi-d1-002'>&nbsp;</td>
+      <td id='tdc_r_compute-e1-001' onclick="table_cell_click('compute-e1-001');" table='compute-e1-001'>&nbsp;</td>
+      <td id='tdc_r_compute-e1-002' onclick="table_cell_click('compute-e1-002');" table='compute-e1-002'>&nbsp;</td>
+      <td id='tdc_r_compute-e1-003' onclick="table_cell_click('compute-e1-003');" table='compute-e1-003'>&nbsp;</td>
+      <td id='tdc_r_compute-e1-004' onclick="table_cell_click('compute-e1-004');" table='compute-e1-004'>&nbsp;</td>
+      <td id='tdc_r_compute-e1-005' onclick="table_cell_click('compute-e1-005');" table='compute-e1-005'>&nbsp;</td>
+      <td id='tdc_r_compute-e1-006' onclick="table_cell_click('compute-e1-006');" table='compute-e1-006'>&nbsp;</td>
+      <td id='tdc_r_compute-e1-007' onclick="table_cell_click('compute-e1-007');" table='compute-e1-007'>&nbsp;</td>
+      <td id='tdc_r_compute-e1-008' onclick="table_cell_click('compute-e1-008');" table='compute-e1-008'>&nbsp;</td>
+      <td id='tdc_r_compute-e1-009' onclick="table_cell_click('compute-e1-009');" table='compute-e1-009'>&nbsp;</td>
+      <td id='tdc_r_compute-e1-010' onclick="table_cell_click('compute-e1-010');" table='compute-e1-010'>&nbsp;</td>
+      <td id='tdc_r_compute-e1-011' onclick="table_cell_click('compute-e1-011');" table='compute-e1-011'>&nbsp;</td>
+      </tr>
+      <tr>
+      <td id='tdc_r_compute-e1-012' onclick="table_cell_click('compute-e1-012');" table='compute-e1-012'>&nbsp;</td>
+      <td id='tdc_r_compute-e1-013' onclick="table_cell_click('compute-e1-013');" table='compute-e1-013'>&nbsp;</td>
+      <td id='tdc_r_compute-e1-014' onclick="table_cell_click('compute-e1-014');" table='compute-e1-014'>&nbsp;</td>
+      <td id='tdc_r_compute-e1-015' onclick="table_cell_click('compute-e1-015');" table='compute-e1-015'>&nbsp;</td>
+      <td id='tdc_r_compute-e1-016' onclick="table_cell_click('compute-e1-016');" table='compute-e1-016'>&nbsp;</td>
+      <td id='tdc_r_compute-e1-017' onclick="table_cell_click('compute-e1-017');" table='compute-e1-017'>&nbsp;</td>
+      <td id='tdc_r_compute-e1-018' onclick="table_cell_click('compute-e1-018');" table='compute-e1-018'>&nbsp;</td>
+      <td id='tdc_r_compute-e1-019' onclick="table_cell_click('compute-e1-019');" table='compute-e1-019'>&nbsp;</td>
+      <td id='tdc_r_compute-e1-020' onclick="table_cell_click('compute-e1-020');" table='compute-e1-020'>&nbsp;</td>
+      <td id='tdc_r_compute-e1-021' onclick="table_cell_click('compute-e1-021');" table='compute-e1-021'>&nbsp;</td>
+      <td id='tdc_r_compute-e1-022' onclick="table_cell_click('compute-e1-022');" table='compute-e1-022'>&nbsp;</td>
+      <td id='tdc_r_compute-e1-045' onclick="table_cell_click('compute-e1-045');" table='compute-e1-045'>&nbsp;</td>
+      <td id='tdc_r_compute-e1-046' onclick="table_cell_click('compute-e1-046');" table='compute-e1-046'>&nbsp;</td>
+      <td id='tdc_r_compute-e1-047' onclick="table_cell_click('compute-e1-047');" table='compute-e1-047'>&nbsp;</td>
+      <td id='tdc_r_compute-e1-048' onclick="table_cell_click('compute-e1-048');" table='compute-e1-048'>&nbsp;</td>
+      <td id='tdc_r_compute-e1-049' onclick="table_cell_click('compute-e1-049');" table='compute-e1-049'>&nbsp;</td>
+      <td id='tdc_r_compute-e1-050' onclick="table_cell_click('compute-e1-050');" table='compute-e1-050'>&nbsp;</td>
+      <td id='tdc_r_compute-e1-051' onclick="table_cell_click('compute-e1-051');" table='compute-e1-051'>&nbsp;</td>
+      <td id='tdc_r_compute-e1-052' onclick="table_cell_click('compute-e1-052');" table='compute-e1-052'>&nbsp;</td>
+      <td id='tdc_r_compute-e1-053' onclick="table_cell_click('compute-e1-053');" table='compute-e1-053'>&nbsp;</td>
+      <td id='tdc_r_compute-e1-054' onclick="table_cell_click('compute-e1-054');" table='compute-e1-054'>&nbsp;</td>
+      </tr>
+      <tr>
+      <td id='tdc_r_compute-e1-055' onclick="table_cell_click('compute-e1-055');" table='compute-e1-055'>&nbsp;</td>
+      <td id='tdc_r_compute-e1-056' onclick="table_cell_click('compute-e1-056');" table='compute-e1-056'>&nbsp;</td>
+      <td id='tdc_r_compute-e1-057' onclick="table_cell_click('compute-e1-057');" table='compute-e1-057'>&nbsp;</td>
+      <td id='tdc_r_compute-e1-058' onclick="table_cell_click('compute-e1-058');" table='compute-e1-058'>&nbsp;</td>
+      <td id='tdc_r_compute-e1-059' onclick="table_cell_click('compute-e1-059');" table='compute-e1-059'>&nbsp;</td>
+      <td id='tdc_r_compute-e1-060' onclick="table_cell_click('compute-e1-060');" table='compute-e1-060'>&nbsp;</td>
+      <td id='tdc_r_compute-e1-061' onclick="table_cell_click('compute-e1-061');" table='compute-e1-061'>&nbsp;</td>
+      <td id='tdc_r_compute-e1-062' onclick="table_cell_click('compute-e1-062');" table='compute-e1-062'>&nbsp;</td>
+      <td id='tdc_r_compute-e1-023' onclick="table_cell_click('compute-e1-023');" table='compute-e1-023'>&nbsp;</td>
+      <td id='tdc_r_compute-e1-024' onclick="table_cell_click('compute-e1-024');" table='compute-e1-024'>&nbsp;</td>
+      <td id='tdc_r_compute-e1-025' onclick="table_cell_click('compute-e1-025');" table='compute-e1-025'>&nbsp;</td>
+      <td id='tdc_r_compute-e1-026' onclick="table_cell_click('compute-e1-026');" table='compute-e1-026'>&nbsp;</td>
+      <td id='tdc_r_compute-e1-027' onclick="table_cell_click('compute-e1-027');" table='compute-e1-027'>&nbsp;</td>
+      <td id='tdc_r_compute-e1-028' onclick="table_cell_click('compute-e1-028');" table='compute-e1-028'>&nbsp;</td>
+      <td id='tdc_r_compute-e1-029' onclick="table_cell_click('compute-e1-029');" table='compute-e1-029'>&nbsp;</td>
+      <td id='tdc_r_compute-e1-030' onclick="table_cell_click('compute-e1-030');" table='compute-e1-030'>&nbsp;</td>
+      <td id='tdc_r_compute-e1-031' onclick="table_cell_click('compute-e1-031');" table='compute-e1-031'>&nbsp;</td>
+      <td id='tdc_r_compute-e1-032' onclick="table_cell_click('compute-e1-032');" table='compute-e1-032'>&nbsp;</td>
+      <td id='tdc_r_compute-e1-033' onclick="table_cell_click('compute-e1-033');" table='compute-e1-033'>&nbsp;</td>
+      <td id='tdc_r_compute-e1-034' onclick="table_cell_click('compute-e1-034');" table='compute-e1-034'>&nbsp;</td>
+      <td id='tdc_r_compute-e1-035' onclick="table_cell_click('compute-e1-035');" table='compute-e1-035'>&nbsp;</td>
+      </tr>
+      <tr>
+      <td id='tdc_r_compute-e1-036' onclick="table_cell_click('compute-e1-036');" table='compute-e1-036'>&nbsp;</td>
+      <td id='tdc_r_compute-e1-037' onclick="table_cell_click('compute-e1-037');" table='compute-e1-037'>&nbsp;</td>
+      <td id='tdc_r_compute-e1-038' onclick="table_cell_click('compute-e1-038');" table='compute-e1-038'>&nbsp;</td>
+      <td id='tdc_r_compute-e1-039' onclick="table_cell_click('compute-e1-039');" table='compute-e1-039'>&nbsp;</td>
+      <td id='tdc_r_compute-e1-040' onclick="table_cell_click('compute-e1-040');" table='compute-e1-040'>&nbsp;</td>
+      <td id='tdc_r_compute-e1-041' onclick="table_cell_click('compute-e1-041');" table='compute-e1-041'>&nbsp;</td>
+      <td id='tdc_r_compute-e1-042' onclick="table_cell_click('compute-e1-042');" table='compute-e1-042'>&nbsp;</td>
+      <td id='tdc_r_compute-e1-043' onclick="table_cell_click('compute-e1-043');" table='compute-e1-043'>&nbsp;</td>
+      <td id='tdc_r_compute-e1-044' onclick="table_cell_click('compute-e1-044');" table='compute-e1-044'>&nbsp;</td>
+      <td id='tdc_r_compute-e1-063' onclick="table_cell_click('compute-e1-063');" table='compute-e1-063'>&nbsp;</td>
+      <td id='tdc_r_compute-e1-064' onclick="table_cell_click('compute-e1-064');" table='compute-e1-064'>&nbsp;</td>
+      <td id='tdc_r_compute-e1-065' onclick="table_cell_click('compute-e1-065');" table='compute-e1-065'>&nbsp;</td>
+      <td id='tdc_r_compute-e1-066' onclick="table_cell_click('compute-e1-066');" table='compute-e1-066'>&nbsp;</td>
+      <td id='tdc_r_compute-e1-067' onclick="table_cell_click('compute-e1-067');" table='compute-e1-067'>&nbsp;</td>
+      <td id='tdc_r_compute-e1-068' onclick="table_cell_click('compute-e1-068');" table='compute-e1-068'>&nbsp;</td>
+      <td id='tdc_r_compute-e1-069' onclick="table_cell_click('compute-e1-069');" table='compute-e1-069'>&nbsp;</td>
+      <td id='tdc_r_compute-e1-070' onclick="table_cell_click('compute-e1-070');" table='compute-e1-070'>&nbsp;</td>
+      <td id='tdc_r_compute-e1-071' onclick="table_cell_click('compute-e1-071');" table='compute-e1-071'>&nbsp;</td>
+      <td id='tdc_r_compute-e1-072' onclick="table_cell_click('compute-e1-072');" table='compute-e1-072'>&nbsp;</td>
+      <td id='tdc_r_compute-e1-073' onclick="table_cell_click('compute-e1-073');" table='compute-e1-073'>&nbsp;</td>
+      <td id='tdc_r_compute-e1-074' onclick="table_cell_click('compute-e1-074');" table='compute-e1-074'>&nbsp;</td>
+      </tr>
+      <tr>
+      <td id='tdc_r_compute-e1-075' onclick="table_cell_click('compute-e1-075');" table='compute-e1-075'>&nbsp;</td>
+      <td id='tdc_r_compute-e1-076' onclick="table_cell_click('compute-e1-076');" table='compute-e1-076'>&nbsp;</td>
+      <td id='tdc_r_compute-e1-077' onclick="table_cell_click('compute-e1-077');" table='compute-e1-077'>&nbsp;</td>
+      <td id='tdc_r_compute-e1-078' onclick="table_cell_click('compute-e1-078');" table='compute-e1-078'>&nbsp;</td>
+      <td id='tdc_r_compute-e1-079' onclick="table_cell_click('compute-e1-079');" table='compute-e1-079'>&nbsp;</td>
+      <td id='tdc_r_compute-e1-080' onclick="table_cell_click('compute-e1-080');" table='compute-e1-080'>&nbsp;</td>
+      <td id='tdc_r_compute-e1-081' onclick="table_cell_click('compute-e1-081');" table='compute-e1-081'>&nbsp;</td>
+      <td id='tdc_r_compute-e1-082' onclick="table_cell_click('compute-e1-082');" table='compute-e1-082'>&nbsp;</td>
+      <td id='tdc_r_compute-bigmem-001' onclick="table_cell_click('compute-bigmem-001');" table='compute-bigmem-001'>&nbsp;</td>
+      <td id='tdc_r_compute-bigmem-003' onclick="table_cell_click('compute-bigmem-003');" table='compute-bigmem-003'>&nbsp;</td>
+      <td id='tdc_r_compute-bigmem-004' onclick="table_cell_click('compute-bigmem-004');" table='compute-bigmem-004'>&nbsp;</td>
+      <td id='tdc_r_compute-cs-001' onclick="table_cell_click('compute-cs-001');" table='compute-cs-001'>&nbsp;</td>
+      <td id='tdc_r_compute-chem-001' onclick="table_cell_click('compute-chem-001');" table='compute-chem-001'>&nbsp;</td>
+      <td id='tdc_r_compute-fmhs-001' onclick="table_cell_click('compute-fmhs-001');" table='compute-fmhs-001'>&nbsp;</td>
+      <td id='tdc_r_compute-bigmem-002' onclick="table_cell_click('compute-bigmem-002');" table='compute-bigmem-002'>&nbsp;</td>
+      <td class=empty>&nbsp;</td>
+      <td class=empty>&nbsp;</td>
+      <td class=empty>&nbsp;</td>
+      <td class=empty>&nbsp;</td>
+      <td class=empty>&nbsp;</td>
+      <td class=empty>&nbsp;</td>
+      </tr>
+      <tr><th colspan=21 align='right' id='tdc_r_date_stamp'>&nbsp;</th></tr>
+      </table>
+    </td>
+  </tr>
+      <tr><td colspan="15" align='right'>
+        <table border="1" cellspacing="0" cellpadding="0" >
+          <tr align="center">
+          <td cellpadding="0" width="36" height="12" bgcolor="#00ff00">-100%</td>
+          <td cellpadding="0" width="36" height="12" bgcolor="#06ff06">-90%</td>
+          <td cellpadding="0" width="36" height="12" bgcolor="#1eff1e">-80%</td>
+          <td cellpadding="0" width="36" height="12" bgcolor="#37ff37">-70%</td>
+          <td cellpadding="0" width="36" height="12" bgcolor="#50ff50">-60%</td>
+          <td cellpadding="0" width="36" height="12" bgcolor="#69ff69">-50%</td>
+          <td cellpadding="0" width="36" height="12" bgcolor="#82ff82">-40%</td>
+          <td cellpadding="0" width="36" height="12" bgcolor="#9bff9b">-30%</td>
+          <td cellpadding="0" width="36" height="12" bgcolor="#b4ffb4">-20%</td>
+          <td cellpadding="0" width="36" height="12" bgcolor="#cdffcd">-10%</td>
+          <td cellpadding="0" width="36" height="12" bgcolor="#FFFFFF">0%</td>
+          <td cellpadding="0" width="36" height="12" bgcolor="#ffe6e6">10%</td>
+          <td cellpadding="0" width="36" height="12" bgcolor="#ffcdcd">20%</td>
+          <td cellpadding="0" width="36" height="12" bgcolor="#ffb4b4">30%</td>
+          <td cellpadding="0" width="36" height="12" bgcolor="#ff9b9b">40%</td>
+          <td cellpadding="0" width="36" height="12" bgcolor="#ff8282">50%</td>
+          <td cellpadding="0" width="36" height="12" bgcolor="#ff6969">60%</td>
+          <td cellpadding="0" width="36" height="12" bgcolor="#ff5050">70%</td>
+          <td cellpadding="0" width="36" height="12" bgcolor="#ff3737">80%</td>
+          <td cellpadding="0" width="36" height="12" bgcolor="#ff1e1e">90%</td>
+          <td cellpadding="0" width="36" height="12" bgcolor="#FF0000">100%</td>
+          <td cellpadding="0" width="36" height="12" bgcolor="#eeee00">Suspended Jobs</td> 
+          <td cellpadding="0" width="36" height="12" bgcolor="grey"><font color="white">Infrastructure</td>
+          <td cellpadding="0" width="36" height="12" bgcolor="black"><font color="white">Empty</font></td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+Mouse over the squares to high-level information about the machine. Click on a square to see details about the machine.<p>
+
+<table cellpadding="30">
+  <tr>
+    <td valign="top"  width="50%">
+      <b>Cluster nodes where more processes/threads run than CPU cores available</b><br>
+      <table width="100%" class="tablesorter">
+        <thead>
+          <tr>
+            <th align="left" width='25%'>Node</th>
+            <th align="left" width='25%'>OverLoad</th>
+            <th align="left" width='25%'>#Processes/Threads</th>
+            <th align="left"  width='25%'>#CPU cores</th>
+          </tr>
+        </thead>
+        <tbody id="overloaded_nodes_table" >
+        </tbody>
+      </table>
+    </td>
+    <td valign="top"width="50%"><b>Cluster nodes where processes run that have CPU usage between 5% and 60%</b><br>
+      <table width="100%" class="tablesorter">
+      <thead>
+        <tr >
+          <th align="left" width='50%'>Node</th>
+          <th align="left" width='50%'>#Processes</th>
+        </tr>
+      </thead>
+      <tbody id="nodes_with_weak_processes_table" >
+      </tbody>
+    </table>
+    </td>
+  </tr>
+</table>
+
+<script>
+  init();
+</script>
+</body>
+</html>

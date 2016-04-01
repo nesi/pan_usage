@@ -1,0 +1,846 @@
+{
+  "rack": {
+    "B15": {
+      "IBM_ID": "A3",
+      "U": 42,
+      "nodes": {
+        "U1": {"model": "X3650_M3", "u": 1, "u_depth": 2, "management_net": "gpfs-a3-001-m", "provisioning_net": "gpfs-a3-001-p", "heatmap": "", "ipoib_net": "", "ib_net": "gpfs-a3-001-ib" },
+        "U3": {"model": "X3650_M3", "u": 3, "u_depth": 2, "management_net": "gpfs-a3-002-m", "provisioning_net": "gpfs-a3-002-p", "heatmap": "", "ipoib_net": "", "ib_net": "gpfs-a3-002-ib" },
+        "U5": {"model": "X3650_M3", "u": 5, "u_depth": 2, "management_net": "gpfs-a3-003-m", "provisioning_net": "gpfs-a3-003-p", "heatmap": "", "ipoib_net": "", "ib_net": "gpfs-a3-003-ib" },
+        "U7": {"model": "X3650_M3", "u": 7, "u_depth": 2, "management_net": "gpfs-a3-004-m", "provisioning_net": "gpfs-a3-004-p", "heatmap": "", "ipoib_net": "", "ib_net": "gpfs-a3-004-ib" },
+        "U9": {"model": "DS3524", "u": 9, "u_depth": 1, "management_net": "ssdmeta-a-m", "provisioning_net": "", "heatmap": "", "ipoib_net": "", "ib_net": "", "tray_id": 99 }, //Controller 1
+        "U10": {"model": "DS3524", "u": 10, "u_depth": 1, "management_net": "ssdmeta-b-m", "provisioning_net": "", "heatmap": "", "ipoib_net": "", "ib_net": "", "tray_id": 99 },//Controller 2
+        "U11": {"model": "DS3512", "u": 11, "u_depth": 1, "management_net": "t1ds1-a-m", "provisioning_net": "", "heatmap": "", "ipoib_net": "", "ib_net": "", "tray_id": 99 }, //Controller 1
+        "U12": {"model": "DS3512", "u": 12, "u_depth": 1, "management_net": "t1ds1-b-m", "provisioning_net": "", "heatmap": "", "ipoib_net": "", "ib_net": "", "tray_id": 99 }, //Controller 2
+        "U13": {"model": "EXP3512", "u": 13, "u_depth": 2, "management_net": "", "provisioning_net": "", "heatmap": "", "ipoib_net": "", "ib_net": "", "tray_id": 0 },
+        "U15": {"model": "EXP3512", "u": 15, "u_depth": 2, "management_net": "", "provisioning_net": "", "heatmap": "", "ipoib_net": "", "ib_net": "", "tray_id": 1 },
+        "U17": {"model": "EXP3512", "u": 17, "u_depth": 2, "management_net": "", "provisioning_net": "", "heatmap": "", "ipoib_net": "", "ib_net": "", "tray_id": 2 },
+        "U19": {"model": "EXP3512", "u": 19, "u_depth": 2, "management_net": "", "provisioning_net": "", "heatmap": "", "ipoib_net": "", "ib_net": "", "tray_id": 3 },
+        "U21": {"model": "DS3512", "u": 21, "u_depth": 1, "management_net": "t2ds1-a-m", "provisioning_net": "", "heatmap": "", "ipoib_net": "", "ib_net": "", "tray_id": 99 }, //Controller 1
+        "U22": {"model": "DS3512", "u": 22, "u_depth": 1, "management_net": "t2ds1-b-m", "provisioning_net": "", "heatmap": "", "ipoib_net": "", "ib_net": "", "tray_id": 99 }, //Controller 2
+        "U23": {"model": "EXP3512", "u": 23, "u_depth": 2, "management_net": "", "provisioning_net": "", "heatmap": "", "ipoib_net": "", "ib_net": "", "tray_id": 0 },
+        "U25": {"model": "EXP3512", "u": 25, "u_depth": 2, "management_net": "", "provisioning_net": "", "heatmap": "", "ipoib_net": "", "ib_net": "", "tray_id": 1 },
+        "U27": {"model": "EXP3512", "u": 27, "u_depth": 2, "management_net": "", "provisioning_net": "", "heatmap": "", "ipoib_net": "", "ib_net": "", "tray_id": 2 },
+        "U29": {"model": "EXP3512", "u": 29, "u_depth": 2, "management_net": "", "provisioning_net": "", "heatmap": "", "ipoib_net": "", "ib_net": "", "tray_id": 3 },
+        "U31": {"model": "DS3512", "u": 31, "u_depth": 1, "management_net": "t2ds2-a-m", "provisioning_net": "", "heatmap": "", "ipoib_net": "", "ib_net": "", "tray_id": 99 }, //Controller 1
+        "U32": {"model": "DS3512", "u": 32, "u_depth": 1, "management_net": "t2ds2-b-m", "provisioning_net": "", "heatmap": "", "ipoib_net": "", "ib_net": "", "tray_id": 99 }, //Controller 2
+        "U33": {"model": "EXP3512", "u": 33, "u_depth": 2, "management_net": "", "provisioning_net": "", "heatmap": "", "ipoib_net": "", "ib_net": "", "tray_id": 0 },
+        "U35": {"model": "EXP3512", "u": 35, "u_depth": 2, "management_net": "", "provisioning_net": "", "heatmap": "", "ipoib_net": "", "ib_net": "", "tray_id": 1 },
+        "U37": {"model": "EXP3512", "u": 37, "u_depth": 2, "management_net": "", "provisioning_net": "", "heatmap": "", "ipoib_net": "", "ib_net": "", "tray_id": 2 },
+        "U39": {"model": "EXP3512", "u": 39, "u_depth": 2, "management_net": "", "provisioning_net": "", "heatmap": "", "ipoib_net": "", "ib_net": "", "tray_id": 3 },
+        "U41": {"model": "SAN40B_4", "u": 41, "u_depth": 1, "management_net": "fcsw-a3-U41-m", "provisioning_net": "", "heatmap": "", "ipoib_net": "", "ib_net": ""},
+        "U42": {"model": "SAN40B_4", "u": 42, "u_depth": 1, "management_net": "fcsw-a3-U42-m", "provisioning_net": "", "heatmap": "", "ipoib_net": "", "ib_net": ""}
+      }
+    },
+    "B15_A": {
+      "IBM_ID": "A3/A",
+      "U": 1,
+      "nodes": {
+        "U1": { "model": "pdu", "u": 1, "u_depth": 1, "management_net": "pdu-a3-a-u1", "provisioning_net": "", "heatmap": "", "ipoib_net": "", "ib_net": ""}
+      }
+    },
+    "B15_B": {
+      "IBM_ID": "A3/B",
+      "U": 1,
+      "nodes": {
+        "U1": { "model": "pdu", "u": 1, "u_depth": 1, "management_net": "pdu-a3-b-u1", "provisioning_net": "", "heatmap": "", "ipoib_net": "", "ib_net": ""}
+      }
+    },
+    "B15_C": {
+      "IBM_ID": "A3/C",
+      "U": 1,
+      "nodes": {
+        "U1": { "model": "pdu", "u": 1, "u_depth": 1, "management_net": "pdu-a3-c-u1", "provisioning_net": "", "heatmap": "", "ipoib_net": "", "ib_net": ""}
+      }
+    },
+    "B15_D": {
+      "IBM_ID": "A3/D",
+      "U": 1,
+      "nodes": {
+        "U1": { "model": "pdu", "u": 1, "u_depth": 1, "management_net": "pdu-a3-d-u1", "provisioning_net": "", "heatmap": "", "ipoib_net": "", "ib_net": ""}
+      }
+    },
+    "D15": {
+      "IBM_ID": "A4/A",
+      "U": 43,
+      "nodes": {
+        "U1": { "model": "DX360_M4", "u": 1, "u_depth": 1, "management_net": "compute-d1-001-m", "provisioning_net": "compute-d1-001-p",  "heatmap": "compute-d1-001", "ipoib_net": "compute-d1-001-ib", "ib_net": "compute-d1-001-ib"},
+        "U2": { "model": "DX360_M4", "u": 2, "u_depth": 1, "management_net": "compute-d1-002-m", "provisioning_net": "compute-d1-002-p",  "heatmap": "compute-d1-002", "ipoib_net": "compute-d1-002-ib", "ib_net": "compute-d1-002-ib"},
+        "U3": { "model": "DX360_M4", "u": 3, "u_depth": 1, "management_net": "compute-d1-003-m", "provisioning_net": "compute-d1-003-p",  "heatmap": "compute-d1-003", "ipoib_net": "compute-d1-003-ib", "ib_net": "compute-d1-003-ib"},
+        "U4": { "model": "DX360_M4", "u": 4, "u_depth": 1, "management_net": "compute-d1-004-m", "provisioning_net": "compute-d1-004-p",  "heatmap": "compute-d1-004", "ipoib_net": "compute-d1-004-ib", "ib_net": "compute-d1-004-ib"},
+        "U5": { "model": "DX360_M4", "u": 5, "u_depth": 1, "management_net": "compute-d1-005-m", "provisioning_net": "compute-d1-005-p",  "heatmap": "compute-d1-005", "ipoib_net": "compute-d1-005-ib", "ib_net": "compute-d1-005-ib"},
+        "U6": { "model": "DX360_M4", "u": 6, "u_depth": 1, "management_net": "compute-d1-006-m", "provisioning_net": "compute-d1-006-p",  "heatmap": "compute-d1-006", "ipoib_net": "compute-d1-006-ib", "ib_net": "compute-d1-006-ib"},
+        "U7": { "model": "DX360_M4", "u": 7, "u_depth": 1, "management_net": "compute-d1-007-m", "provisioning_net": "compute-d1-007-p",  "heatmap": "compute-d1-007", "ipoib_net": "compute-d1-007-ib", "ib_net": "compute-d1-007-ib"},
+        "U8": { "model": "DX360_M4", "u": 8, "u_depth": 1, "management_net": "compute-d1-008-m", "provisioning_net": "compute-d1-008-p",  "heatmap": "compute-d1-008", "ipoib_net": "compute-d1-008-ib", "ib_net": "compute-d1-008-ib"},
+        "U9": { "model": "DX360_M4", "u": 9, "u_depth": 1, "management_net": "compute-d1-009-m", "provisioning_net": "compute-d1-009-p",  "heatmap": "compute-d1-009", "ipoib_net": "compute-d1-009-ib", "ib_net": "compute-d1-009-ib"},
+        "U10": { "model": "DX360_M4", "u": 10, "u_depth": 1, "management_net": "compute-d1-010-m", "provisioning_net": "compute-d1-010-p",  "heatmap": "compute-d1-010", "ipoib_net": "compute-d1-010-ib", "ib_net": "compute-d1-010-ib"},
+        "U11": { "model": "DX360_M4", "u": 11, "u_depth": 1, "management_net": "compute-d1-011-m", "provisioning_net": "compute-d1-011-p",  "heatmap": "compute-d1-011", "ipoib_net": "compute-d1-011-ib", "ib_net": "compute-d1-011-ib"},
+        "U12": { "model": "DX360_M4", "u": 12, "u_depth": 1, "management_net": "compute-d1-012-m", "provisioning_net": "compute-d1-012-p",  "heatmap": "compute-d1-012", "ipoib_net": "compute-d1-012-ib", "ib_net": "compute-d1-012-ib"},
+        "U13": { "model": "DX360_M4", "u": 13, "u_depth": 1, "management_net": "compute-d1-013-m", "provisioning_net": "compute-d1-013-p",  "heatmap": "compute-d1-013", "ipoib_net": "compute-d1-013-ib", "ib_net": "compute-d1-013-ib"},
+        "U14": { "model": "DX360_M4", "u": 14, "u_depth": 1, "management_net": "compute-d1-014-m", "provisioning_net": "compute-d1-014-p",  "heatmap": "compute-d1-014", "ipoib_net": "compute-d1-014-ib", "ib_net": "compute-d1-014-ib"},
+        "U15": { "model": "DX360_M4", "u": 15, "u_depth": 1, "management_net": "compute-d1-015-m", "provisioning_net": "compute-d1-015-p",  "heatmap": "compute-d1-015", "ipoib_net": "compute-d1-015-ib", "ib_net": "compute-d1-015-ib"},
+        "U16": { "model": "DX360_M4", "u": 16, "u_depth": 1, "management_net": "compute-d1-016-m", "provisioning_net": "compute-d1-016-p",  "heatmap": "compute-d1-016", "ipoib_net": "compute-d1-016-ib", "ib_net": "compute-d1-016-ib"},
+        "U17": { "model": "DX360_M4", "u": 17, "u_depth": 1, "management_net": "compute-d1-017-m", "provisioning_net": "compute-d1-017-p",  "heatmap": "compute-d1-017", "ipoib_net": "compute-d1-017-ib", "ib_net": "compute-d1-017-ib"},
+        "U18": { "model": "DX360_M4", "u": 18, "u_depth": 1, "management_net": "compute-d1-018-m", "provisioning_net": "compute-d1-018-p",  "heatmap": "compute-d1-018", "ipoib_net": "compute-d1-018-ib", "ib_net": "compute-d1-018-ib"},
+        "U19": { "model": "DX360_M4", "u": 19, "u_depth": 1, "management_net": "compute-d1-019-m", "provisioning_net": "compute-d1-019-p",  "heatmap": "compute-d1-019", "ipoib_net": "compute-d1-019-ib", "ib_net": "compute-d1-019-ib"},
+        "U20": { "model": "DX360_M4", "u": 20, "u_depth": 1, "management_net": "compute-d1-020-m", "provisioning_net": "compute-d1-020-p",  "heatmap": "compute-d1-020", "ipoib_net": "compute-d1-020-ib", "ib_net": "compute-d1-020-ib"},
+        "U21": { "model": "DX360_M4", "u": 21, "u_depth": 1, "management_net": "compute-d1-021-m", "provisioning_net": "compute-d1-021-p",  "heatmap": "compute-d1-021", "ipoib_net": "compute-d1-021-ib", "ib_net": "compute-d1-021-ib"},
+        "U22": { "model": "DX360_M4", "u": 22, "u_depth": 1, "management_net": "compute-d1-022-m", "provisioning_net": "compute-d1-022-p",  "heatmap": "compute-d1-022", "ipoib_net": "compute-d1-022-ib", "ib_net": "compute-d1-022-ib"},
+        "U23": { "model": "DX360_M4", "u": 23, "u_depth": 1, "management_net": "compute-d1-023-m", "provisioning_net": "compute-d1-023-p",  "heatmap": "compute-d1-023", "ipoib_net": "compute-d1-023-ib", "ib_net": "compute-d1-023-ib"},
+        "U24": { "model": "DX360_M4", "u": 24, "u_depth": 1, "management_net": "compute-d1-024-m", "provisioning_net": "compute-d1-024-p",  "heatmap": "compute-d1-024", "ipoib_net": "compute-d1-024-ib", "ib_net": "compute-d1-024-ib"},
+        "U25": { "model": "DX360_M4", "u": 25, "u_depth": 1, "management_net": "compute-d1-025-m", "provisioning_net": "compute-d1-025-p",  "heatmap": "compute-d1-025", "ipoib_net": "compute-d1-025-ib", "ib_net": "compute-d1-025-ib"},
+        "U26": { "model": "DX360_M4", "u": 26, "u_depth": 1, "management_net": "compute-d1-026-m", "provisioning_net": "compute-d1-026-p",  "heatmap": "compute-d1-026", "ipoib_net": "compute-d1-026-ib", "ib_net": "compute-d1-026-ib"},
+        "U27": { "model": "DX360_M4", "u": 27, "u_depth": 1, "management_net": "compute-d1-027-m", "provisioning_net": "compute-d1-027-p",  "heatmap": "compute-d1-027", "ipoib_net": "compute-d1-027-ib", "ib_net": "compute-d1-027-ib"},
+        "U28": { "model": "DX360_M4", "u": 28, "u_depth": 1, "management_net": "compute-d1-028-m", "provisioning_net": "compute-d1-028-p",  "heatmap": "compute-d1-028", "ipoib_net": "compute-d1-028-ib", "ib_net": "compute-d1-028-ib"},
+        "U29": { "model": "DX360_M4", "u": 29, "u_depth": 1, "management_net": "compute-d1-029-m", "provisioning_net": "compute-d1-029-p",  "heatmap": "compute-d1-029", "ipoib_net": "compute-d1-029-ib", "ib_net": "compute-d1-029-ib"},
+        "U30": { "model": "DX360_M4", "u": 30, "u_depth": 1, "management_net": "compute-d1-030-m", "provisioning_net": "compute-d1-030-p",  "heatmap": "compute-d1-030", "ipoib_net": "compute-d1-030-ib", "ib_net": "compute-d1-030-ib"},
+        "U31": { "model": "DX360_M4", "u": 31, "u_depth": 1, "management_net": "compute-d1-031-m", "provisioning_net": "compute-d1-031-p",  "heatmap": "compute-d1-031", "ipoib_net": "compute-d1-031-ib", "ib_net": "compute-d1-031-ib"},
+        "U32": { "model": "DX360_M4", "u": 32, "u_depth": 1, "management_net": "compute-d1-032-m", "provisioning_net": "compute-d1-032-p",  "heatmap": "compute-d1-032", "ipoib_net": "compute-d1-032-ib", "ib_net": "compute-d1-032-ib"},
+        "U33": { "model": "DX360_M4", "u": 33, "u_depth": 1, "management_net": "compute-d1-033-m", "provisioning_net": "compute-d1-033-p",  "heatmap": "compute-d1-033", "ipoib_net": "compute-d1-033-ib", "ib_net": "compute-d1-033-ib"},
+        "U34": { "model": "DX360_M4", "u": 34, "u_depth": 1, "management_net": "compute-d1-034-m", "provisioning_net": "compute-d1-034-p",  "heatmap": "compute-d1-034", "ipoib_net": "compute-d1-034-ib", "ib_net": "compute-d1-034-ib"},
+        "U35": { "model": "DX360_M4", "u": 35, "u_depth": 1, "management_net": "compute-d1-035-m", "provisioning_net": "compute-d1-035-p",  "heatmap": "compute-d1-035", "ipoib_net": "compute-d1-035-ib", "ib_net": "compute-d1-035-ib"},
+        "U36": { "model": "DX360_M4", "u": 36, "u_depth": 1, "management_net": "compute-d1-036-m", "provisioning_net": "compute-d1-036-p",  "heatmap": "compute-d1-036", "ipoib_net": "compute-d1-036-ib", "ib_net": "compute-d1-036-ib"},
+        "U37": { "model": "DX360_M4_GPU", "u": 37, "u_depth": 2, "management_net": "compute-gpu-d1-001-m", "provisioning_net": "compute-gpu-d1-001-p",  "heatmap": "compute-gpu-d1-001", "ipoib_net": "compute-gpu-d1-001-ib", "ib_net": "compute-gpu-d1-001-ib"},
+        "U39": { "model": "DX360_M4_GPU", "u": 39, "u_depth": 2, "management_net": "compute-gpu-d1-002-m", "provisioning_net": "compute-gpu-d1-002-p",  "heatmap": "compute-gpu-d1-002", "ipoib_net": "compute-gpu-d1-002-ib", "ib_net": "compute-gpu-d1-002-ib"},
+        "U41": { "model": "DX360_M4_PHI", "u": 41, "u_depth": 2, "management_net": "compute-phi-d1-001-m", "provisioning_net": "compute-phi-d1-001-p",  "heatmap": "compute-phi-d1-001", "ipoib_net": "compute-phi-d1-001-ib", "ib_net": "compute-phi-d1-001-ib"},
+        "U43": { "model": "BLANK", "u": 43, "u_depth": 1, "management_net": "", "provisioning_net": "", "heatmap": "", "ipoib_net": "", "ib_net": ""}
+      }
+    },
+    "D15_B": {
+      "IBM_ID": "A4/B",
+      "U": 8,
+      "nodes": {
+        "U1": { "model": "pdu", "u": 1, "u_depth": 1, "management_net": "pdu-d1-b-u1", "provisioning_net": "", "heatmap": "", "ipoib_net": "", "ib_net": ""},
+        "U2": { "model": "BLANK", "u": 2, "u_depth": 1, "management_net": "", "provisioning_net": "", "heatmap": "", "ipoib_net": "", "ib_net": ""},
+        "U3": { "model": "pdu", "u": 3, "u_depth": 1, "management_net": "pdu-d1-b-u3", "provisioning_net": "", "heatmap": "", "ipoib_net": "", "ib_net": ""},
+        "U4": { "model": "BLANK", "u": 4, "u_depth": 1, "management_net": "", "provisioning_net": "", "heatmap": "", "ipoib_net": "", "ib_net": ""},
+        "U5": { "model": "pdu", "u": 5, "u_depth": 1, "management_net": "pdu-d1-b-u5", "provisioning_net": "", "heatmap": "", "ipoib_net": "", "ib_net": ""},
+        "U6": { "model": "switch", "u": 6, "u_depth": 1, "management_net": "exmgmt-a4-b6-m", "provisioning_net": "", "heatmap": "", "ipoib_net": "", "ib_net": ""},
+        "U7": { "model": "BLANK", "u": 7, "u_depth": 1, "management_net": "", "provisioning_net": "", "heatmap": "", "ipoib_net": "", "ib_net": ""},
+        "U8": { "model": "BLANK", "u": 8, "u_depth": 1, "management_net": "", "provisioning_net": "", "heatmap": "", "ipoib_net": "", "ib_net": ""}
+      }
+    },
+    "E15": {
+      "IBM_ID": "A4/C",
+      "U": 43,
+      "nodes": {
+        "U1": { "model": "BLANK", "u": 1, "u_depth": 1, "management_net": "", "provisioning_net": "", "heatmap": "", "ipoib_net": "", "ib_net": ""},
+        "U2": { "model": "DX360_M4", "u": 2, "u_depth": 1, "management_net": "compute-d1-037-m", "provisioning_net": "compute-d1-037-p",  "heatmap": "compute-d1-037", "ipoib_net": "compute-d1-037-ib", "ib_net": "compute-d1-037-ib"},
+        "U3": { "model": "DX360_M4", "u": 3, "u_depth": 1, "management_net": "compute-d1-038-m", "provisioning_net": "compute-d1-038-p",  "heatmap": "compute-d1-038", "ipoib_net": "compute-d1-038-ib", "ib_net": "compute-d1-038-ib"},
+        "U4": { "model": "DX360_M4", "u": 4, "u_depth": 1, "management_net": "compute-d1-039-m", "provisioning_net": "compute-d1-039-p",  "heatmap": "compute-d1-039", "ipoib_net": "compute-d1-039-ib", "ib_net": "compute-d1-039-ib"},
+        "U5": { "model": "DX360_M4", "u": 5, "u_depth": 1, "management_net": "compute-d1-040-m", "provisioning_net": "compute-d1-040-p",  "heatmap": "compute-d1-040", "ipoib_net": "compute-d1-040-ib", "ib_net": "compute-d1-040-ib"},
+        "U6": { "model": "DX360_M4", "u": 6, "u_depth": 1, "management_net": "compute-d1-041-m", "provisioning_net": "compute-d1-041-p",  "heatmap": "compute-d1-041", "ipoib_net": "compute-d1-041-ib", "ib_net": "compute-d1-041-ib"},
+        "U7": { "model": "DX360_M4", "u": 7, "u_depth": 1, "management_net": "compute-d1-042-m", "provisioning_net": "compute-d1-042-p",  "heatmap": "compute-d1-042", "ipoib_net": "compute-d1-042-ib", "ib_net": "compute-d1-042-ib"},
+        "U8": { "model": "DX360_M4", "u": 8, "u_depth": 1, "management_net": "compute-d1-043-m", "provisioning_net": "compute-d1-043-p",  "heatmap": "compute-d1-043", "ipoib_net": "compute-d1-043-ib", "ib_net": "compute-d1-043-ib"},
+        "U9": { "model": "DX360_M4", "u": 9, "u_depth": 1, "management_net": "compute-d1-044-m", "provisioning_net": "compute-d1-044-p",  "heatmap": "compute-d1-044", "ipoib_net": "compute-d1-044-ib", "ib_net": "compute-d1-044-ib"},
+        "U10": { "model": "DX360_M4", "u": 10, "u_depth": 1, "management_net": "compute-d1-045-m", "provisioning_net": "compute-d1-045-p",  "heatmap": "compute-d1-045", "ipoib_net": "compute-d1-045-ib", "ib_net": "compute-d1-045-ib"},
+        "U11": { "model": "DX360_M4", "u": 11, "u_depth": 1, "management_net": "compute-d1-046-m", "provisioning_net": "compute-d1-046-p",  "heatmap": "compute-d1-046", "ipoib_net": "compute-d1-046-ib", "ib_net": "compute-d1-046-ib"},
+        "U12": { "model": "DX360_M4", "u": 12, "u_depth": 1, "management_net": "compute-d1-047-m", "provisioning_net": "compute-d1-047-p",  "heatmap": "compute-d1-047", "ipoib_net": "compute-d1-047-ib", "ib_net": "compute-d1-047-ib"},
+        "U13": { "model": "DX360_M4", "u": 13, "u_depth": 1, "management_net": "compute-d1-048-m", "provisioning_net": "compute-d1-048-p",  "heatmap": "compute-d1-048", "ipoib_net": "compute-d1-048-ib", "ib_net": "compute-d1-048-ib"},
+        "U14": { "model": "DX360_M4", "u": 14, "u_depth": 1, "management_net": "compute-d1-049-m", "provisioning_net": "compute-d1-049-p",  "heatmap": "compute-d1-049", "ipoib_net": "compute-d1-049-ib", "ib_net": "compute-d1-049-ib"},
+        "U15": { "model": "DX360_M4", "u": 15, "u_depth": 1, "management_net": "compute-d1-050-m", "provisioning_net": "compute-d1-050-p",  "heatmap": "compute-d1-050", "ipoib_net": "compute-d1-050-ib", "ib_net": "compute-d1-050-ib"},
+        "U16": { "model": "DX360_M4", "u": 16, "u_depth": 1, "management_net": "compute-d1-051-m", "provisioning_net": "compute-d1-051-p",  "heatmap": "compute-d1-051", "ipoib_net": "compute-d1-051-ib", "ib_net": "compute-d1-051-ib"},
+        "U17": { "model": "DX360_M4", "u": 17, "u_depth": 1, "management_net": "compute-d1-052-m", "provisioning_net": "compute-d1-052-p",  "heatmap": "compute-d1-052", "ipoib_net": "compute-d1-052-ib", "ib_net": "compute-d1-052-ib"},
+        "U18": { "model": "DX360_M4", "u": 18, "u_depth": 1, "management_net": "compute-d1-053-m", "provisioning_net": "compute-d1-053-p",  "heatmap": "compute-d1-053", "ipoib_net": "compute-d1-053-ib", "ib_net": "compute-d1-053-ib"},
+        "U19": { "model": "DX360_M4", "u": 19, "u_depth": 1, "management_net": "compute-d1-054-m", "provisioning_net": "compute-d1-054-p",  "heatmap": "compute-d1-054", "ipoib_net": "compute-d1-054-ib", "ib_net": "compute-d1-054-ib"},
+        "U20": { "model": "DX360_M4", "u": 20, "u_depth": 1, "management_net": "compute-d1-055-m", "provisioning_net": "compute-d1-055-p",  "heatmap": "compute-d1-055", "ipoib_net": "compute-d1-055-ib", "ib_net": "compute-d1-055-ib"},
+        "U21": { "model": "DX360_M4", "u": 21, "u_depth": 1, "management_net": "compute-d1-056-m", "provisioning_net": "compute-d1-056-p",  "heatmap": "compute-d1-056", "ipoib_net": "compute-d1-056-ib", "ib_net": "compute-d1-056-ib"},
+        "U22": { "model": "DX360_M4", "u": 22, "u_depth": 1, "management_net": "compute-d1-057-m", "provisioning_net": "compute-d1-057-p",  "heatmap": "compute-d1-057", "ipoib_net": "compute-d1-057-ib", "ib_net": "compute-d1-057-ib"},
+        "U23": { "model": "DX360_M4", "u": 23, "u_depth": 1, "management_net": "compute-d1-058-m", "provisioning_net": "compute-d1-058-p",  "heatmap": "compute-d1-058", "ipoib_net": "compute-d1-058-ib", "ib_net": "compute-d1-058-ib"},
+        "U24": { "model": "DX360_M4", "u": 24, "u_depth": 1, "management_net": "compute-d1-059-m", "provisioning_net": "compute-d1-059-p",  "heatmap": "compute-d1-059", "ipoib_net": "compute-d1-059-ib", "ib_net": "compute-d1-059-ib"},
+        "U25": { "model": "DX360_M4", "u": 25, "u_depth": 1, "management_net": "compute-d1-060-m", "provisioning_net": "compute-d1-060-p",  "heatmap": "compute-d1-060", "ipoib_net": "compute-d1-060-ib", "ib_net": "compute-d1-060-ib"},
+        "U26": { "model": "DX360_M4", "u": 26, "u_depth": 1, "management_net": "compute-d1-061-m", "provisioning_net": "compute-d1-061-p",  "heatmap": "compute-d1-061", "ipoib_net": "compute-d1-061-ib", "ib_net": "compute-d1-061-ib"},
+        "U27": { "model": "DX360_M4", "u": 27, "u_depth": 1, "management_net": "compute-d1-062-m", "provisioning_net": "compute-d1-062-p",  "heatmap": "compute-d1-062", "ipoib_net": "compute-d1-062-ib", "ib_net": "compute-d1-062-ib"},
+        "U28": { "model": "DX360_M4", "u": 28, "u_depth": 1, "management_net": "compute-d1-063-m", "provisioning_net": "compute-d1-063-p",  "heatmap": "compute-d1-063", "ipoib_net": "compute-d1-063-ib", "ib_net": "compute-d1-063-ib"},
+        "U29": { "model": "DX360_M4", "u": 29, "u_depth": 1, "management_net": "compute-d1-064-m", "provisioning_net": "compute-d1-064-p",  "heatmap": "compute-d1-064", "ipoib_net": "compute-d1-064-ib", "ib_net": "compute-d1-064-ib"},
+        "U30": { "model": "DX360_M4", "u": 30, "u_depth": 1, "management_net": "compute-d1-065-m", "provisioning_net": "compute-d1-065-p",  "heatmap": "compute-d1-065", "ipoib_net": "compute-d1-065-ib", "ib_net": "compute-d1-065-ib"},
+        "U31": { "model": "DX360_M4", "u": 31, "u_depth": 1, "management_net": "compute-d1-066-m", "provisioning_net": "compute-d1-066-p",  "heatmap": "compute-d1-066", "ipoib_net": "compute-d1-066-ib", "ib_net": "compute-d1-066-ib"},
+        "U32": { "model": "DX360_M4", "u": 32, "u_depth": 1, "management_net": "compute-d1-067-m", "provisioning_net": "compute-d1-067-p",  "heatmap": "compute-d1-067", "ipoib_net": "compute-d1-067-ib", "ib_net": "compute-d1-067-ib"},
+        "U33": { "model": "DX360_M4", "u": 33, "u_depth": 1, "management_net": "compute-d1-068-m", "provisioning_net": "compute-d1-068-p",  "heatmap": "compute-d1-068", "ipoib_net": "compute-d1-068-ib", "ib_net": "compute-d1-068-ib"},
+        "U34": { "model": "DX360_M4", "u": 34, "u_depth": 1, "management_net": "compute-d1-069-m", "provisioning_net": "compute-d1-069-p",  "heatmap": "compute-d1-069", "ipoib_net": "compute-d1-069-ib", "ib_net": "compute-d1-069-ib"},
+        "U35": { "model": "DX360_M4", "u": 35, "u_depth": 1, "management_net": "compute-d1-070-m", "provisioning_net": "compute-d1-070-p",  "heatmap": "compute-d1-070", "ipoib_net": "compute-d1-070-ib", "ib_net": "compute-d1-070-ib"},
+        "U36": { "model": "DX360_M4_GPU", "u": 36, "u_depth": 2, "management_net": "compute-gpu-d1-003-m", "provisioning_net": "compute-gpu-d1-003-p",  "heatmap": "compute-gpu-d1-003", "ipoib_net": "compute-gpu-d1-003-ib", "ib_net": "compute-gpu-d1-003-ib"},
+        "U38": { "model": "DX360_M4_GPU", "u": 38, "u_depth": 2, "management_net": "compute-gpu-d1-004-m", "provisioning_net": "compute-gpu-d1-004-p",  "heatmap": "compute-gpu-d1-004", "ipoib_net": "compute-gpu-d1-004-ib", "ib_net": "compute-gpu-d1-004-ib"},
+        "U40": { "model": "DX360_M4_GPU", "u": 40, "u_depth": 2, "management_net": "compute-gpu-d1-005-m", "provisioning_net": "compute-gpu-d1-005-p",  "heatmap": "compute-gpu-d1-005", "ipoib_net": "compute-gpu-d1-005-ib", "ib_net": "compute-gpu-d1-005-ib"},
+        "U42": { "model": "DX360_M4_PHI", "u": 42, "u_depth": 2, "management_net": "compute-phi-d1-002-m", "provisioning_net": "compute-phi-d1-002-p",  "heatmap": "compute-phi-d1-002", "ipoib_net": "compute-phi-d1-002-ib", "ib_net": "compute-phi-d1-002-ib"}
+      }
+    },
+    "E15_D": {
+      "IBM_ID": "A4/D",
+      "U": 8,
+      "nodes": {
+        "U1": { "model": "pdu", "u": 1, "u_depth": 1, "management_net": "pdu-d1-d-u1", "provisioning_net": "", "heatmap": "", "ipoib_net": "", "ib_net": ""},
+        "U2": { "model": "BLANK", "u": 2, "u_depth": 1, "management_net": "", "provisioning_net": "", "heatmap": "", "ipoib_net": "", "ib_net": ""},
+        "U3": { "model": "pdu", "u": 3, "u_depth": 1, "management_net": "pdu-d1-d-u3", "provisioning_net": "", "heatmap": "", "ipoib_net": "", "ib_net": ""},
+        "U4": { "model": "BLANK", "u": 4, "u_depth": 1, "management_net": "", "provisioning_net": "", "heatmap": "", "ipoib_net": "", "ib_net": ""},
+        "U5": { "model": "pdu", "u": 5, "u_depth": 1, "management_net": "pdu-d1-d-u5", "provisioning_net": "", "heatmap": "", "ipoib_net": "", "ib_net": ""},
+        "U6": { "model": "switch", "u": 6, "u_depth": 1, "management_net": "exmgmt-a4-d6-m", "provisioning_net": "", "heatmap": "", "ipoib_net": "", "ib_net": ""},
+        "U7": { "model": "BLANK", "u": 7, "u_depth": 1, "management_net": "", "provisioning_net": "", "heatmap": "", "ipoib_net": "", "ib_net": ""},
+        "U8": { "model": "BLANK", "u": 8, "u_depth": 1, "management_net": "", "provisioning_net": "", "heatmap": "", "ipoib_net": "", "ib_net": ""}
+      }
+    },
+    "G15": {
+      "IBM_ID": "C4",
+      "U": 42,
+      "nodes": {
+        "U1": { "model": "BLANK", "u": 1, "u_depth": 4, "management_net": "", "provisioning_net": "", "heatmap": "", "ipoib_net": "", "ib_net": ""},
+        "U5": { "model": "IS5300", "u": 5, "u_depth": 15, "management_net": "", "provisioning_net": "", "heatmap": "", "ipoib_net": "", "ib_net": ""},
+        "U20": { "model": "IS5300", "u": 20, "u_depth": 1, "management_net": "ib-is5300-c4-001-m", "provisioning_net": "", "heatmap": "", "ipoib_net": "", "ib_net": ""}, //Controller 1
+        "U21": { "model": "IS5300", "u": 21, "u_depth": 1, "management_net": "ib-is5300-c4-002-m", "provisioning_net": "", "heatmap": "", "ipoib_net": "", "ib_net": ""}, //Controller 2
+        "U22": { "model": "BLANK", "u": 22, "u_depth": 1, "management_net": "", "provisioning_net": "", "heatmap": "", "ipoib_net": "", "ib_net": ""},
+        "U23": { "model": "X3650_M4", "u": 23, "u_depth": 2, "management_net": "gpfs-a4-006-m", "provisioning_net": "gpfs-a4-006-p", "heatmap": "", "ipoib_net": "", "ib_net": "gpfs-a4-006-ib"},
+        "U25": { "model": "X3650_M4", "u": 25, "u_depth": 2, "management_net": "gpfs-a4-005-m", "provisioning_net": "gpfs-a4-005-p", "heatmap": "", "ipoib_net": "", "ib_net": "gpfs-a4-005-ib"},
+        "U27": { "model": "X3650_M4", "u": 27, "u_depth": 2, "management_net": "xcat2-m", "provisioning_net": "xcat2-p", "heatmap": "", "ipoib_net": "xcat2-ib", "ib_net": "xcat2-ib"},
+        "U29": { "model": "EXP3524", "u": 29, "u_depth": 2, "management_net": "", "provisioning_net": "", "heatmap": "", "ipoib_net": "", "ib_net": "", "tray_id": 2},
+        "U31": { "model": "EXP3524", "u": 31, "u_depth": 2, "management_net": "", "provisioning_net": "", "heatmap": "", "ipoib_net": "", "ib_net": "", "tray_id": 1},
+        "U33": { "model": "EXP3524", "u": 33, "u_depth": 2, "management_net": "", "provisioning_net": "", "heatmap": "", "ipoib_net": "", "ib_net": "", "tray_id": 0},
+        "U35": { "model": "DS3524", "u": 35, "u_depth": 1, "management_net": "t2ds3-a-m", "provisioning_net": "", "heatmap": "", "ipoib_net": "", "ib_net": "", "tray_id": 99}, //Controller 1
+        "U36": { "model": "DS3524", "u": 36, "u_depth": 1, "management_net": "t2ds3-b-m", "provisioning_net": "", "heatmap": "", "ipoib_net": "", "ib_net": "", "tray_id": 99}, //Controller 2
+        "U37": { "model": "X3690_X5", "u": 37, "u_depth": 2, "management_net": "vs03-m", "provisioning_net": "vs03-p", "heatmap": "", "ipoib_net": "", "ib_net": ""},
+        "U39": { "model": "X3690_X5", "u": 39, "u_depth": 2, "management_net": "compute-bigmem-002-m", "provisioning_net": "compute-bigmem-002-p",  "heatmap": "compute-bigmem-002", "ipoib_net": "compute-bigmem-002-ib", "ib_net": "compute-bigmem-002-ib"},
+        "U41": { "model": "X3690_X5", "u": 41, "u_depth": 2, "management_net": "vs01-m", "provisioning_net": "vs01-p", "heatmap": "", "ipoib_net": "", "ib_net": ""}
+      }
+    },
+    "G15_A": {
+      "IBM_ID": "C4/A",
+      "U": 1,
+      "nodes": {
+        "U1": { "model": "BLANK", "u": 1, "u_depth": 1, "management_net": "", "provisioning_net": "", "heatmap": "", "ipoib_net": "", "ib_net": ""}
+      }
+    },
+    "G15_B": {
+      "IBM_ID": "C4/B",
+      "U": 1,
+      "nodes": {
+        "U1": { "model": "BLANK", "u": 1, "u_depth": 1, "management_net": "", "provisioning_net": "", "heatmap": "", "ipoib_net": "", "ib_net": ""}
+      }
+    },
+    "G15_C": {
+      "IBM_ID": "C4/C",
+      "U": 1,
+      "nodes": {
+        "U1": { "model": "BLANK", "u": 1, "u_depth": 1, "management_net": "", "provisioning_net": "", "heatmap": "", "ipoib_net": "", "ib_net": ""}
+      }
+    },
+    "G15_D": {
+      "IBM_ID": "C4/D",
+      "U": 1,
+      "nodes": {
+        "U1": { "model": "BLANK", "u": 1, "u_depth": 1, "management_net": "", "provisioning_net": "", "heatmap": "", "ipoib_net": "", "ib_net": ""}
+      }
+    },
+    "H15": {
+      "IBM_ID": "C3/A",
+      "U": 43,
+      "nodes": {
+        "U1": { "model": "DX360_M4", "u": 1, "u_depth": 1, "management_net": "compute-c1-001-m", "provisioning_net": "compute-c1-001-p",  "heatmap": "compute-c1-001", "ipoib_net": "compute-c1-001-ib", "ib_net": "compute-c1-001-ib"},
+        "U2": { "model": "DX360_M4", "u": 2, "u_depth": 1, "management_net": "compute-c1-002-m", "provisioning_net": "compute-c1-002-p",  "heatmap": "compute-c1-002", "ipoib_net": "compute-c1-002-ib", "ib_net": "compute-c1-002-ib"},
+        "U3": { "model": "DX360_M4", "u": 3, "u_depth": 1, "management_net": "compute-c1-003-m", "provisioning_net": "compute-c1-003-p",  "heatmap": "compute-c1-003", "ipoib_net": "compute-c1-003-ib", "ib_net": "compute-c1-003-ib"},
+        "U4": { "model": "DX360_M4", "u": 4, "u_depth": 1, "management_net": "compute-c1-004-m", "provisioning_net": "compute-c1-004-p",  "heatmap": "compute-c1-004", "ipoib_net": "compute-c1-004-ib", "ib_net": "compute-c1-004-ib"},
+        "U5": { "model": "DX360_M4", "u": 5, "u_depth": 1, "management_net": "compute-c1-005-m", "provisioning_net": "compute-c1-005-p",  "heatmap": "compute-c1-005", "ipoib_net": "compute-c1-005-ib", "ib_net": "compute-c1-005-ib"},
+        "U6": { "model": "DX360_M4", "u": 6, "u_depth": 1, "management_net": "compute-c1-006-m", "provisioning_net": "compute-c1-006-p",  "heatmap": "compute-c1-006", "ipoib_net": "compute-c1-006-ib", "ib_net": "compute-c1-006-ib"},
+        "U7": { "model": "DX360_M4", "u": 7, "u_depth": 1, "management_net": "compute-c1-007-m", "provisioning_net": "compute-c1-007-p",  "heatmap": "compute-c1-007", "ipoib_net": "compute-c1-007-ib", "ib_net": "compute-c1-007-ib"},
+        "U8": { "model": "DX360_M4", "u": 8, "u_depth": 1, "management_net": "compute-c1-008-m", "provisioning_net": "compute-c1-008-p",  "heatmap": "compute-c1-008", "ipoib_net": "compute-c1-008-ib", "ib_net": "compute-c1-008-ib"},
+        "U9": { "model": "DX360_M4", "u": 9, "u_depth": 1, "management_net": "compute-c1-009-m", "provisioning_net": "compute-c1-009-p",  "heatmap": "compute-c1-009", "ipoib_net": "compute-c1-009-ib", "ib_net": "compute-c1-009-ib"},
+        "U10": { "model": "DX360_M4", "u": 10, "u_depth": 1, "management_net": "compute-c1-010-m", "provisioning_net": "compute-c1-010-p",  "heatmap": "compute-c1-010", "ipoib_net": "compute-c1-010-ib", "ib_net": "compute-c1-010-ib"},
+        "U11": { "model": "DX360_M4", "u": 11, "u_depth": 1, "management_net": "compute-c1-011-m", "provisioning_net": "compute-c1-011-p",  "heatmap": "compute-c1-011", "ipoib_net": "compute-c1-011-ib", "ib_net": "compute-c1-011-ib"},
+        "U12": { "model": "DX360_M4", "u": 12, "u_depth": 1, "management_net": "compute-c1-012-m", "provisioning_net": "compute-c1-012-p",  "heatmap": "compute-c1-012", "ipoib_net": "compute-c1-012-ib", "ib_net": "compute-c1-012-ib"},
+        "U13": { "model": "DX360_M4", "u": 13, "u_depth": 1, "management_net": "compute-c1-013-m", "provisioning_net": "compute-c1-013-p",  "heatmap": "compute-c1-013", "ipoib_net": "compute-c1-013-ib", "ib_net": "compute-c1-013-ib"},
+        "U14": { "model": "DX360_M4", "u": 14, "u_depth": 1, "management_net": "compute-c1-014-m", "provisioning_net": "compute-c1-014-p",  "heatmap": "compute-c1-014", "ipoib_net": "compute-c1-014-ib", "ib_net": "compute-c1-014-ib"},
+        "U15": { "model": "DX360_M4", "u": 15, "u_depth": 1, "management_net": "compute-c1-015-m", "provisioning_net": "compute-c1-015-p",  "heatmap": "compute-c1-015", "ipoib_net": "compute-c1-015-ib", "ib_net": "compute-c1-015-ib"},
+        "U16": { "model": "DX360_M4", "u": 16, "u_depth": 1, "management_net": "compute-c1-016-m", "provisioning_net": "compute-c1-016-p",  "heatmap": "compute-c1-016", "ipoib_net": "compute-c1-016-ib", "ib_net": "compute-c1-016-ib"},
+        "U17": { "model": "DX360_M4", "u": 17, "u_depth": 1, "management_net": "compute-c1-017-m", "provisioning_net": "compute-c1-017-p",  "heatmap": "compute-c1-017", "ipoib_net": "compute-c1-017-ib", "ib_net": "compute-c1-017-ib"},
+        "U18": { "model": "DX360_M4", "u": 18, "u_depth": 1, "management_net": "compute-c1-018-m", "provisioning_net": "compute-c1-018-p",  "heatmap": "compute-c1-018", "ipoib_net": "compute-c1-018-ib", "ib_net": "compute-c1-018-ib"},
+        "U19": { "model": "DX360_M4", "u": 19, "u_depth": 1, "management_net": "compute-c1-019-m", "provisioning_net": "compute-c1-019-p",  "heatmap": "compute-c1-019", "ipoib_net": "compute-c1-019-ib", "ib_net": "compute-c1-019-ib"},
+        "U20": { "model": "DX360_M4", "u": 20, "u_depth": 1, "management_net": "compute-c1-020-m", "provisioning_net": "compute-c1-020-p",  "heatmap": "compute-c1-020", "ipoib_net": "compute-c1-020-ib", "ib_net": "compute-c1-020-ib"},
+        "U21": { "model": "DX360_M4", "u": 21, "u_depth": 1, "management_net": "compute-c1-021-m", "provisioning_net": "compute-c1-021-p",  "heatmap": "compute-c1-021", "ipoib_net": "compute-c1-021-ib", "ib_net": "compute-c1-021-ib"},
+        "U22": { "model": "DX360_M4", "u": 22, "u_depth": 1, "management_net": "compute-c1-022-m", "provisioning_net": "compute-c1-022-p",  "heatmap": "compute-c1-022", "ipoib_net": "compute-c1-022-ib", "ib_net": "compute-c1-022-ib"},
+        "U23": { "model": "DX360_M4", "u": 23, "u_depth": 1, "management_net": "compute-c1-023-m", "provisioning_net": "compute-c1-023-p",  "heatmap": "compute-c1-023", "ipoib_net": "compute-c1-023-ib", "ib_net": "compute-c1-023-ib"},
+        "U24": { "model": "DX360_M4", "u": 24, "u_depth": 1, "management_net": "compute-c1-024-m", "provisioning_net": "compute-c1-024-p",  "heatmap": "compute-c1-024", "ipoib_net": "compute-c1-024-ib", "ib_net": "compute-c1-024-ib"},
+        "U25": { "model": "DX360_M4", "u": 25, "u_depth": 1, "management_net": "compute-c1-025-m", "provisioning_net": "compute-c1-025-p",  "heatmap": "compute-c1-025", "ipoib_net": "compute-c1-025-ib", "ib_net": "compute-c1-025-ib"},
+        "U26": { "model": "DX360_M4", "u": 26, "u_depth": 1, "management_net": "compute-c1-026-m", "provisioning_net": "compute-c1-026-p",  "heatmap": "compute-c1-026", "ipoib_net": "compute-c1-026-ib", "ib_net": "compute-c1-026-ib"},
+        "U27": { "model": "DX360_M4", "u": 27, "u_depth": 1, "management_net": "compute-c1-027-m", "provisioning_net": "compute-c1-027-p",  "heatmap": "compute-c1-027", "ipoib_net": "compute-c1-027-ib", "ib_net": "compute-c1-027-ib"},
+        "U28": { "model": "DX360_M4", "u": 28, "u_depth": 1, "management_net": "compute-c1-028-m", "provisioning_net": "compute-c1-028-p",  "heatmap": "compute-c1-028", "ipoib_net": "compute-c1-028-ib", "ib_net": "compute-c1-028-ib"},
+        "U29": { "model": "DX360_M4_GPU", "u": 29, "u_depth": 2, "management_net": "compute-gpu-c1-001-m", "provisioning_net": "compute-gpu-c1-001-p",  "heatmap": "compute-gpu-c1-001", "ipoib_net": "compute-gpu-c1-001-ib", "ib_net": "build-sb-ib"},
+        "U31": { "model": "DX360_M4_GPU", "u": 31, "u_depth": 2, "management_net": "compute-gpu-c1-002-m", "provisioning_net": "compute-gpu-c1-002-p",  "heatmap": "compute-gpu-c1-002", "ipoib_net": "compute-gpu-c1-002-ib", "ib_net": "compute-gpu-c1-002-ib"},
+        "U33": { "model": "DX360_M4_GPU", "u": 33, "u_depth": 2, "management_net": "compute-cs-002-m", "provisioning_net": "compute-cs-002-p",  "heatmap": "compute-cs-002", "ipoib_net": "compute-cs-002-ib", "ib_net": "compute-cs-002-ib"},
+        "U35": { "model": "DX360_M4", "u": 35, "u_depth": 1, "management_net": "compute-stats-002-m", "provisioning_net": "compute-stats-002-p",  "heatmap": "compute-stats-002", "ipoib_net": "compute-stats-002-ib", "ib_net": "compute-stats-002-ib"},
+        "U36": { "model": "DX360_M4", "u": 36, "u_depth": 1, "management_net": "compute-stats-003-m", "provisioning_net": "compute-stats-003-p",  "heatmap": "compute-stats-003", "ipoib_net": "compute-stats-003-ib", "ib_net": "compute-stats-003-ib"},
+        "U37": { "model": "DX360_M4", "u": 37, "u_depth": 1, "management_net": "compute-c1-059-m", "provisioning_net": "compute-c1-059-p",  "heatmap": "compute-c1-059", "ipoib_net": "compute-c1-059-ib", "ib_net": "compute-c1-059-ib"},
+        "U38": { "model": "DX360_M4", "u": 38, "u_depth": 1, "management_net": "compute-c1-060-m", "provisioning_net": "compute-c1-060-p",  "heatmap": "compute-c1-060", "ipoib_net": "compute-c1-060-ib", "ib_net": "compute-c1-060-ib"},
+        "U39": { "model": "BLANK", "u": 39, "u_depth": 5, "management_net": "", "provisioning_net": "", "heatmap": "", "ipoib_net": "", "ib_net": ""}
+      }
+    },
+    "H15_B": {
+      "IBM_ID": "C3/B",
+      "U": 8,
+      "nodes": {
+        "U1": { "model": "BLANK", "u": 1, "u_depth": 1, "management_net": "", "provisioning_net": "", "heatmap": "", "ipoib_net": "", "ib_net": ""},
+        "U2": { "model": "switch", "u": 2, "u_depth": 1, "management_net": "exmgmt-c3-b2-m", "provisioning_net": "", "heatmap": "", "ipoib_net": "", "ib_net": ""},
+        "U3": { "model": "pdu", "u": 3, "u_depth": 1, "management_net": "pdu-c1-b-u3", "provisioning_net": "", "heatmap": "", "ipoib_net": "", "ib_net": ""},
+        "U4": { "model": "BLANK", "u": 4, "u_depth": 1, "management_net": "", "provisioning_net": "", "heatmap": "", "ipoib_net": "", "ib_net": ""},
+        "U5": { "model": "pdu", "u": 5, "u_depth": 1, "management_net": "pdu-c1-b-u5", "provisioning_net": "", "heatmap": "", "ipoib_net": "", "ib_net": ""},
+        "U6": { "model": "BLANK", "u": 6, "u_depth": 1, "management_net": "", "provisioning_net": "", "heatmap": "", "ipoib_net": "", "ib_net": ""},
+        "U7": { "model": "BLANK", "u": 7, "u_depth": 1, "management_net": "", "provisioning_net": "", "heatmap": "", "ipoib_net": "", "ib_net": ""},
+        "U8": { "model": "BLANK", "u": 8, "u_depth": 1, "management_net": "", "provisioning_net": "", "heatmap": "", "ipoib_net": "", "ib_net": ""}
+      }
+    },
+    "I15": {
+      "IBM_ID": "C3/C",
+      "U": 43,
+      "nodes": {
+        "U1": { "model": "BLANK", "u": 1, "u_depth": 1, "management_net": "", "provisioning_net": "", "heatmap": "", "ipoib_net": "", "ib_net": ""},
+        "U2": { "model": "DX360_M4", "u": 2, "u_depth": 1, "management_net": "compute-c1-029-m", "provisioning_net": "compute-c1-029-p",  "heatmap": "compute-c1-029", "ipoib_net": "compute-c1-029-ib", "ib_net": "compute-c1-029-ib"},
+        "U3": { "model": "DX360_M4", "u": 3, "u_depth": 1, "management_net": "compute-c1-030-m", "provisioning_net": "compute-c1-030-p",  "heatmap": "compute-c1-030", "ipoib_net": "compute-c1-030-ib", "ib_net": "compute-c1-030-ib"},
+        "U4": { "model": "DX360_M4", "u": 4, "u_depth": 1, "management_net": "compute-c1-031-m", "provisioning_net": "compute-c1-031-p",  "heatmap": "compute-c1-031", "ipoib_net": "compute-c1-031-ib", "ib_net": "compute-c1-031-ib"},
+        "U5": { "model": "DX360_M4", "u": 5, "u_depth": 1, "management_net": "compute-c1-032-m", "provisioning_net": "compute-c1-032-p",  "heatmap": "compute-c1-032", "ipoib_net": "compute-c1-032-ib", "ib_net": "compute-c1-032-ib"},
+        "U6": { "model": "DX360_M4", "u": 6, "u_depth": 1, "management_net": "compute-c1-033-m", "provisioning_net": "compute-c1-033-p",  "heatmap": "compute-c1-033", "ipoib_net": "compute-c1-033-ib", "ib_net": "compute-c1-033-ib"},
+        "U7": { "model": "DX360_M4", "u": 7, "u_depth": 1, "management_net": "compute-c1-034-m", "provisioning_net": "compute-c1-034-p",  "heatmap": "compute-c1-034", "ipoib_net": "compute-c1-034-ib", "ib_net": "compute-c1-034-ib"},
+        "U8": { "model": "DX360_M4", "u": 8, "u_depth": 1, "management_net": "compute-c1-035-m", "provisioning_net": "compute-c1-035-p",  "heatmap": "compute-c1-035", "ipoib_net": "compute-c1-035-ib", "ib_net": "compute-c1-035-ib"},
+        "U9": { "model": "DX360_M4", "u": 9, "u_depth": 1, "management_net": "compute-c1-036-m", "provisioning_net": "compute-c1-036-p",  "heatmap": "compute-c1-036", "ipoib_net": "compute-c1-036-ib", "ib_net": "compute-c1-036-ib"},
+        "U10": { "model": "DX360_M4", "u": 10, "u_depth": 1, "management_net": "compute-c1-037-m", "provisioning_net": "compute-c1-037-p",  "heatmap": "compute-c1-037", "ipoib_net": "compute-c1-037-ib", "ib_net": "compute-c1-037-ib"},
+        "U11": { "model": "DX360_M4", "u": 11, "u_depth": 1, "management_net": "compute-c1-038-m", "provisioning_net": "compute-c1-038-p",  "heatmap": "compute-c1-038", "ipoib_net": "compute-c1-038-ib", "ib_net": "compute-c1-038-ib"},
+        "U12": { "model": "DX360_M4", "u": 12, "u_depth": 1, "management_net": "compute-c1-039-m", "provisioning_net": "compute-c1-039-p",  "heatmap": "compute-c1-039", "ipoib_net": "compute-c1-039-ib", "ib_net": "compute-c1-039-ib"},
+        "U13": { "model": "DX360_M4", "u": 13, "u_depth": 1, "management_net": "compute-c1-040-m", "provisioning_net": "compute-c1-040-p",  "heatmap": "compute-c1-040", "ipoib_net": "compute-c1-040-ib", "ib_net": "compute-c1-040-ib"},
+        "U14": { "model": "DX360_M4", "u": 14, "u_depth": 1, "management_net": "compute-c1-041-m", "provisioning_net": "compute-c1-041-p",  "heatmap": "compute-c1-041", "ipoib_net": "compute-c1-041-ib", "ib_net": "compute-c1-041-ib"},
+        "U15": { "model": "DX360_M4", "u": 15, "u_depth": 1, "management_net": "compute-c1-042-m", "provisioning_net": "compute-c1-042-p",  "heatmap": "compute-c1-042", "ipoib_net": "compute-c1-042-ib", "ib_net": "compute-c1-042-ib"},
+        "U16": { "model": "DX360_M4", "u": 16, "u_depth": 1, "management_net": "compute-c1-043-m", "provisioning_net": "compute-c1-043-p",  "heatmap": "compute-c1-043", "ipoib_net": "compute-c1-043-ib", "ib_net": "compute-c1-043-ib"},
+        "U17": { "model": "DX360_M4", "u": 17, "u_depth": 1, "management_net": "compute-c1-044-m", "provisioning_net": "compute-c1-044-p",  "heatmap": "compute-c1-044", "ipoib_net": "compute-c1-044-ib", "ib_net": "compute-c1-044-ib"},
+        "U18": { "model": "DX360_M4", "u": 18, "u_depth": 1, "management_net": "compute-c1-045-m", "provisioning_net": "compute-c1-045-p",  "heatmap": "compute-c1-045", "ipoib_net": "compute-c1-045-ib", "ib_net": "compute-c1-045-ib"},
+        "U19": { "model": "DX360_M4", "u": 19, "u_depth": 1, "management_net": "compute-c1-046-m", "provisioning_net": "compute-c1-046-p",  "heatmap": "compute-c1-046", "ipoib_net": "compute-c1-046-ib", "ib_net": "compute-c1-046-ib"},
+        "U20": { "model": "DX360_M4", "u": 20, "u_depth": 1, "management_net": "compute-c1-047-m", "provisioning_net": "compute-c1-047-p",  "heatmap": "compute-c1-047", "ipoib_net": "compute-c1-047-ib", "ib_net": "compute-c1-047-ib"},
+        "U21": { "model": "DX360_M4", "u": 21, "u_depth": 1, "management_net": "compute-c1-048-m", "provisioning_net": "compute-c1-048-p",  "heatmap": "compute-c1-048", "ipoib_net": "compute-c1-048-ib", "ib_net": "compute-c1-048-ib"},
+        "U22": { "model": "DX360_M4", "u": 22, "u_depth": 1, "management_net": "compute-c1-049-m", "provisioning_net": "compute-c1-049-p",  "heatmap": "compute-c1-049", "ipoib_net": "compute-c1-049-ib", "ib_net": "compute-c1-049-ib"},
+        "U23": { "model": "DX360_M4", "u": 23, "u_depth": 1, "management_net": "compute-c1-050-m", "provisioning_net": "compute-c1-050-p",  "heatmap": "compute-c1-050", "ipoib_net": "compute-c1-050-ib", "ib_net": "compute-c1-050-ib"},
+        "U24": { "model": "DX360_M4", "u": 24, "u_depth": 1, "management_net": "compute-c1-051-m", "provisioning_net": "compute-c1-051-p",  "heatmap": "compute-c1-051", "ipoib_net": "compute-c1-051-ib", "ib_net": "compute-c1-051-ib"},
+        "U25": { "model": "DX360_M4", "u": 25, "u_depth": 1, "management_net": "compute-c1-052-m", "provisioning_net": "compute-c1-052-p",  "heatmap": "compute-c1-052", "ipoib_net": "compute-c1-052-ib", "ib_net": "compute-c1-052-ib"},
+        "U26": { "model": "DX360_M4", "u": 26, "u_depth": 1, "management_net": "compute-c1-053-m", "provisioning_net": "compute-c1-053-p",  "heatmap": "compute-c1-053", "ipoib_net": "compute-c1-053-ib", "ib_net": "compute-c1-053-ib"},
+        "U27": { "model": "DX360_M4", "u": 27, "u_depth": 1, "management_net": "compute-c1-054-m", "provisioning_net": "compute-c1-054-p",  "heatmap": "compute-c1-054", "ipoib_net": "compute-c1-054-ib", "ib_net": "compute-c1-054-ib"},
+        "U28": { "model": "DX360_M4", "u": 28, "u_depth": 1, "management_net": "compute-c1-055-m", "provisioning_net": "compute-c1-055-p",  "heatmap": "compute-c1-055", "ipoib_net": "compute-c1-055-ib", "ib_net": "compute-c1-055-ib"},
+        "U29": { "model": "DX360_M4", "u": 29, "u_depth": 1, "management_net": "compute-c1-056-m", "provisioning_net": "compute-c1-056-p",  "heatmap": "compute-c1-056", "ipoib_net": "compute-c1-056-ib", "ib_net": "compute-c1-056-ib"},
+        "U30": { "model": "DX360_M4_GPU", "u": 30, "u_depth": 2, "management_net": "compute-gpu-c1-003-m", "provisioning_net": "compute-gpu-c1-003-p",  "heatmap": "compute-gpu-c1-003", "ipoib_net": "compute-gpu-c1-003-ib", "ib_net": "compute-gpu-c1-003-ib"},
+        "U32": { "model": "DX360_M4_GPU", "u": 32, "u_depth": 2, "management_net": "compute-gpu-c1-004-m", "provisioning_net": "compute-gpu-c1-004-p",  "heatmap": "compute-gpu-c1-004", "ipoib_net": "compute-gpu-c1-004-ib", "ib_net": "compute-gpu-c1-004-ib"},
+        "U34": { "model": "DX360_M4", "u": 34, "u_depth": 1, "management_net": "compute-stats-004-m", "provisioning_net": "compute-stats-004-p",  "heatmap": "compute-stats-004", "ipoib_net": "compute-stats-004-ib", "ib_net": "compute-stats-004-ib"},
+        "U35": { "model": "DX360_M4", "u": 35, "u_depth": 1, "management_net": "compute-stats-005-m", "provisioning_net": "compute-stats-005-p",  "heatmap": "compute-stats-005", "ipoib_net": "compute-stats-005-ib", "ib_net": "compute-stats-005-ib"},
+        "U36": { "model": "DX360_M4", "u": 36, "u_depth": 1, "management_net": "compute-c1-057-m", "provisioning_net": "compute-c1-057-p",  "heatmap": "compute-c1-057", "ipoib_net": "compute-c1-057-ib", "ib_net": "compute-c1-057-ib"},
+        "U37": { "model": "DX360_M4", "u": 37, "u_depth": 1, "management_net": "compute-c1-058-m", "provisioning_net": "compute-c1-058-p",  "heatmap": "compute-c1-058", "ipoib_net": "compute-c1-058-ib", "ib_net": "compute-c1-058-ib"},
+        "U38": { "model": "DX360_M4", "u": 38, "u_depth": 1, "management_net": "compute-cs-003-m", "provisioning_net": "compute-cs-003-p",  "heatmap": "compute-cs-003", "ipoib_net": "compute-cs-003-ib", "ib_net": "compute-cs-003-ib"},
+        "U39": { "model": "DX360_M4", "u": 39, "u_depth": 1, "management_net": "compute-physics-001-m", "provisioning_net": "compute-physics-001-p",  "heatmap": "compute-physics-001", "ipoib_net": "compute-physics-001-ib", "ib_net": "compute-physics-001-ib"},
+        "U40": { "model": "BLANK", "u": 40, "u_depth": 4, "management_net": "", "provisioning_net": "", "heatmap": "", "ipoib_net": "", "ib_net": ""}
+      }
+    },
+    "I15_D": {
+      "IBM_ID": "C3/D",
+      "U": 8,
+      "nodes": {
+        "U1": { "model": "BLANK", "u": 1, "u_depth": 1, "management_net": "", "provisioning_net": "", "heatmap": "", "ipoib_net": "", "ib_net": ""},
+        "U2": { "model": "switch", "u": 2, "u_depth": 1, "management_net": "exmgmt-c3-d2-m", "provisioning_net": "", "heatmap": "", "ipoib_net": "", "ib_net": ""},
+        "U3": { "model": "pdu", "u": 3, "u_depth": 1, "management_net": "pdu-c1-d-u3", "provisioning_net": "", "heatmap": "", "ipoib_net": "", "ib_net": ""},
+        "U4": { "model": "BLANK", "u": 4, "u_depth": 1, "management_net": "", "provisioning_net": "", "heatmap": "", "ipoib_net": "", "ib_net": ""},
+        "U5": { "model": "pdu", "u": 5, "u_depth": 1, "management_net": "pdu-c1-d-u5", "provisioning_net": "", "heatmap": "", "ipoib_net": "", "ib_net": ""},
+        "U6": { "model": "BLANK", "u": 6, "u_depth": 1, "management_net": "", "provisioning_net": "", "heatmap": "", "ipoib_net": "", "ib_net": ""},
+        "U7": { "model": "BLANK", "u": 7, "u_depth": 1, "management_net": "", "provisioning_net": "", "heatmap": "", "ipoib_net": "", "ib_net": ""},
+        "U8": { "model": "BLANK", "u": 8, "u_depth": 1, "management_net": "", "provisioning_net": "", "heatmap": "", "ipoib_net": "", "ib_net": ""}
+      }
+    },
+    "K15": {
+      "IBM_ID": "A5/A",
+      "U": 43,
+      "nodes": {
+        "U1": { "model": "DX360_M4", "u": 1, "u_depth": 1, "management_net": "compute-e1-001-m", "provisioning_net": "compute-e1-001-p",  "heatmap": "compute-e1-001", "ipoib_net": "compute-e1-001-ib", "ib_net": "compute-e1-001-ib"},
+        "U2": { "model": "DX360_M4", "u": 2, "u_depth": 1, "management_net": "compute-e1-002-m", "provisioning_net": "compute-e1-002-p",  "heatmap": "compute-e1-002", "ipoib_net": "compute-e1-002-ib", "ib_net": "compute-e1-002-ib"},
+        "U3": { "model": "DX360_M4", "u": 3, "u_depth": 1, "management_net": "compute-e1-003-m", "provisioning_net": "compute-e1-003-p",  "heatmap": "compute-e1-003", "ipoib_net": "compute-e1-003-ib", "ib_net": "compute-e1-003-ib"},
+        "U4": { "model": "DX360_M4", "u": 4, "u_depth": 1, "management_net": "compute-e1-004-m", "provisioning_net": "compute-e1-004-p",  "heatmap": "compute-e1-004", "ipoib_net": "compute-e1-004-ib", "ib_net": "compute-e1-004-ib"},
+        "U5": { "model": "DX360_M4", "u": 5, "u_depth": 1, "management_net": "compute-e1-005-m", "provisioning_net": "compute-e1-005-p",  "heatmap": "compute-e1-005", "ipoib_net": "compute-e1-005-ib", "ib_net": "compute-e1-005-ib"},
+        "U6": { "model": "DX360_M4", "u": 6, "u_depth": 1, "management_net": "compute-e1-006-m", "provisioning_net": "compute-e1-006-p",  "heatmap": "compute-e1-006", "ipoib_net": "compute-e1-006-ib", "ib_net": "compute-e1-006-ib"},
+        "U7": { "model": "DX360_M4", "u": 7, "u_depth": 1, "management_net": "compute-e1-007-m", "provisioning_net": "compute-e1-007-p",  "heatmap": "compute-e1-007", "ipoib_net": "compute-e1-007-ib", "ib_net": "compute-e1-007-ib"},
+        "U8": { "model": "DX360_M4", "u": 8, "u_depth": 1, "management_net": "compute-e1-008-m", "provisioning_net": "compute-e1-008-p",  "heatmap": "compute-e1-008", "ipoib_net": "compute-e1-008-ib", "ib_net": "compute-e1-008-ib"},
+        "U9": { "model": "DX360_M4", "u": 9, "u_depth": 1, "management_net": "compute-e1-009-m", "provisioning_net": "compute-e1-009-p",  "heatmap": "compute-e1-009", "ipoib_net": "compute-e1-009-ib", "ib_net": "compute-e1-009-ib"},
+        "U10": { "model": "DX360_M4", "u": 10, "u_depth": 1, "management_net": "compute-e1-010-m", "provisioning_net": "compute-e1-010-p",  "heatmap": "compute-e1-010", "ipoib_net": "compute-e1-010-ib", "ib_net": "compute-e1-010-ib"},
+        "U11": { "model": "DX360_M4", "u": 11, "u_depth": 1, "management_net": "compute-e1-011-m", "provisioning_net": "compute-e1-011-p",  "heatmap": "compute-e1-011", "ipoib_net": "compute-e1-011-ib", "ib_net": "compute-e1-011-ib"},
+        "U12": { "model": "DX360_M4", "u": 12, "u_depth": 1, "management_net": "compute-e1-012-m", "provisioning_net": "compute-e1-012-p",  "heatmap": "compute-e1-012", "ipoib_net": "compute-e1-012-ib", "ib_net": "compute-e1-012-ib"},
+        "U13": { "model": "DX360_M4", "u": 13, "u_depth": 1, "management_net": "compute-e1-013-m", "provisioning_net": "compute-e1-013-p",  "heatmap": "compute-e1-013", "ipoib_net": "compute-e1-013-ib", "ib_net": "compute-e1-013-ib"},
+        "U14": { "model": "DX360_M4", "u": 14, "u_depth": 1, "management_net": "compute-e1-014-m", "provisioning_net": "compute-e1-014-p",  "heatmap": "compute-e1-014", "ipoib_net": "compute-e1-014-ib", "ib_net": "compute-e1-014-ib"},
+        "U15": { "model": "DX360_M4", "u": 15, "u_depth": 1, "management_net": "compute-e1-015-m", "provisioning_net": "compute-e1-015-p",  "heatmap": "compute-e1-015", "ipoib_net": "compute-e1-015-ib", "ib_net": "compute-e1-015-ib"},
+        "U16": { "model": "DX360_M4", "u": 16, "u_depth": 1, "management_net": "compute-e1-016-m", "provisioning_net": "compute-e1-016-p",  "heatmap": "compute-e1-016", "ipoib_net": "compute-e1-016-ib", "ib_net": "compute-e1-016-ib"},
+        "U17": { "model": "DX360_M4", "u": 17, "u_depth": 1, "management_net": "compute-e1-017-m", "provisioning_net": "compute-e1-017-p",  "heatmap": "compute-e1-017", "ipoib_net": "compute-e1-017-ib", "ib_net": "compute-e1-017-ib"},
+        "U18": { "model": "DX360_M4", "u": 18, "u_depth": 1, "management_net": "compute-e1-018-m", "provisioning_net": "compute-e1-018-p",  "heatmap": "compute-e1-018", "ipoib_net": "compute-e1-018-ib", "ib_net": "compute-e1-018-ib"},
+        "U19": { "model": "DX360_M4", "u": 19, "u_depth": 1, "management_net": "compute-e1-019-m", "provisioning_net": "compute-e1-019-p",  "heatmap": "compute-e1-019", "ipoib_net": "compute-e1-019-ib", "ib_net": "compute-e1-019-ib"},
+        "U20": { "model": "DX360_M4", "u": 20, "u_depth": 1, "management_net": "compute-e1-020-m", "provisioning_net": "compute-e1-020-p",  "heatmap": "compute-e1-020", "ipoib_net": "compute-e1-020-ib", "ib_net": "compute-e1-020-ib"},
+        "U21": { "model": "DX360_M4", "u": 21, "u_depth": 1, "management_net": "compute-e1-021-m", "provisioning_net": "compute-e1-021-p",  "heatmap": "compute-e1-021", "ipoib_net": "compute-e1-021-ib", "ib_net": "compute-e1-021-ib"},
+        "U22": { "model": "DX360_M4", "u": 22, "u_depth": 1, "management_net": "compute-e1-022-m", "provisioning_net": "compute-e1-022-p",  "heatmap": "compute-e1-022", "ipoib_net": "compute-e1-022-ib", "ib_net": "compute-e1-022-ib"},
+          //IVY BRIDGE
+        "U23": { "model": "DX360_M4", "u": 23, "u_depth": 1, "management_net": "compute-e1-045-m", "provisioning_net": "compute-e1-045-p",  "heatmap": "compute-e1-045", "ipoib_net": "compute-e1-045-ib", "ib_net": "compute-e1-045-ib"},
+        "U24": { "model": "DX360_M4", "u": 24, "u_depth": 1, "management_net": "compute-e1-046-m", "provisioning_net": "compute-e1-046-p",  "heatmap": "compute-e1-046", "ipoib_net": "compute-e1-046-ib", "ib_net": "compute-e1-046-ib"},
+        "U25": { "model": "DX360_M4", "u": 25, "u_depth": 1, "management_net": "compute-e1-047-m", "provisioning_net": "compute-e1-047-p",  "heatmap": "compute-e1-047", "ipoib_net": "compute-e1-047-ib", "ib_net": "compute-e1-047-ib"},
+        "U26": { "model": "DX360_M4", "u": 26, "u_depth": 1, "management_net": "compute-e1-048-m", "provisioning_net": "compute-e1-048-p",  "heatmap": "compute-e1-048", "ipoib_net": "compute-e1-048-ib", "ib_net": "compute-e1-048-ib"},
+        "U27": { "model": "DX360_M4", "u": 27, "u_depth": 1, "management_net": "compute-e1-049-m", "provisioning_net": "compute-e1-049-p",  "heatmap": "compute-e1-049", "ipoib_net": "compute-e1-049-ib", "ib_net": "compute-e1-049-ib"},
+        "U28": { "model": "DX360_M4", "u": 28, "u_depth": 1, "management_net": "compute-e1-050-m", "provisioning_net": "compute-e1-050-p",  "heatmap": "compute-e1-050", "ipoib_net": "compute-e1-050-ib", "ib_net": "compute-e1-050-ib"},
+        "U29": { "model": "DX360_M4", "u": 29, "u_depth": 1, "management_net": "compute-e1-051-m", "provisioning_net": "compute-e1-051-p",  "heatmap": "compute-e1-051", "ipoib_net": "compute-e1-051-ib", "ib_net": "compute-e1-051-ib"},
+        "U30": { "model": "DX360_M4", "u": 30, "u_depth": 1, "management_net": "compute-e1-052-m", "provisioning_net": "compute-e1-052-p",  "heatmap": "compute-e1-052", "ipoib_net": "compute-e1-052-ib", "ib_net": "compute-e1-052-ib"},
+        "U31": { "model": "DX360_M4", "u": 31, "u_depth": 1, "management_net": "compute-e1-053-m", "provisioning_net": "compute-e1-053-p",  "heatmap": "compute-e1-053", "ipoib_net": "compute-e1-053-ib", "ib_net": "compute-e1-053-ib"},
+        "U32": { "model": "DX360_M4", "u": 32, "u_depth": 1, "management_net": "compute-e1-054-m", "provisioning_net": "compute-e1-054-p",  "heatmap": "compute-e1-054", "ipoib_net": "compute-e1-054-ib", "ib_net": "compute-e1-054-ib"},
+        "U33": { "model": "DX360_M4", "u": 33, "u_depth": 1, "management_net": "compute-e1-055-m", "provisioning_net": "compute-e1-055-p",  "heatmap": "compute-e1-055", "ipoib_net": "compute-e1-055-ib", "ib_net": "compute-e1-055-ib"},
+        "U34": { "model": "DX360_M4", "u": 34, "u_depth": 1, "management_net": "compute-e1-056-m", "provisioning_net": "compute-e1-056-p",  "heatmap": "compute-e1-056", "ipoib_net": "compute-e1-056-ib", "ib_net": "compute-e1-056-ib"},
+        "U35": { "model": "DX360_M4", "u": 35, "u_depth": 1, "management_net": "compute-e1-057-m", "provisioning_net": "compute-e1-057-p",  "heatmap": "compute-e1-057", "ipoib_net": "compute-e1-057-ib", "ib_net": "compute-e1-057-ib"},
+        "U36": { "model": "DX360_M4", "u": 36, "u_depth": 1, "management_net": "compute-e1-058-m", "provisioning_net": "compute-e1-058-p",  "heatmap": "compute-e1-058", "ipoib_net": "compute-e1-058-ib", "ib_net": "compute-e1-058-ib"},
+        "U37": { "model": "DX360_M4", "u": 37, "u_depth": 1, "management_net": "compute-e1-059-m", "provisioning_net": "compute-e1-059-p",  "heatmap": "compute-e1-059", "ipoib_net": "compute-e1-059-ib", "ib_net": "compute-e1-059-ib"},
+        "U38": { "model": "DX360_M4", "u": 38, "u_depth": 1, "management_net": "compute-e1-060-m", "provisioning_net": "compute-e1-060-p",  "heatmap": "compute-e1-060", "ipoib_net": "compute-e1-060-ib", "ib_net": "compute-e1-060-ib"},
+        "U39": { "model": "DX360_M4", "u": 39, "u_depth": 1, "management_net": "compute-e1-061-m", "provisioning_net": "compute-e1-061-p",  "heatmap": "compute-e1-061", "ipoib_net": "compute-e1-061-ib", "ib_net": "compute-e1-061-ib"},
+        "U40": { "model": "DX360_M4", "u": 40, "u_depth": 1, "management_net": "compute-e1-062-m", "provisioning_net": "compute-e1-062-p",  "heatmap": "compute-e1-062", "ipoib_net": "compute-e1-062-ib", "ib_net": "compute-e1-062-ib"},
+        "U41": { "model": "BLANK", "u": 41, "u_depth": 1, "management_net": "ib0gw-a2-001-m", "provisioning_net": "",  "heatmap": "", "ipoib_net": "", "ib_net": ""},
+        "U42": { "model": "V4036E", "u": 42, "u_depth": 1, "management_net": "ib0gw-a2-002-m", "provisioning_net": "",  "heatmap": "", "ipoib_net": "", "ib_net": ""},
+        "U43": { "model": "V4036E", "u": 43, "u_depth": 1, "management_net": "", "provisioning_net": "",  "heatmap": "", "ipoib_net": "", "ib_net": ""}
+      }
+    },
+    "K15_B": {
+      "IBM_ID": "A5/B",
+      "U": 8,
+      "nodes": {
+        "U1": { "model": "pdu", "u": 1, "u_depth": 1, "management_net": "pdu-e1-b-u1", "provisioning_net": "",  "heatmap": "", "ipoib_net": "", "ib_net": ""},
+        "U2": { "model": "BLANK", "u": 2, "u_depth": 1, "management_net": "", "provisioning_net": "",  "heatmap": "", "ipoib_net": "", "ib_net": ""},
+        "U3": { "model": "pdu", "u": 3, "u_depth": 1, "management_net": "pdu-e1-b-u3", "provisioning_net": "",  "heatmap": "", "ipoib_net": "", "ib_net": ""},
+        "U4": { "model": "switch", "u": 4, "u_depth": 1, "management_net": "exmgmt-a5-b4-m", "provisioning_net": "",  "heatmap": "", "ipoib_net": "", "ib_net": ""},
+        "U5": { "model": "pdu", "u": 5, "u_depth": 1, "management_net": "pdu-e1-b-u5", "provisioning_net": "",  "heatmap": "", "ipoib_net": "", "ib_net": ""},
+        "U6": { "model": "BLANK", "u": 6, "u_depth": 1, "management_net": "", "provisioning_net": "",  "heatmap": "", "ipoib_net": "", "ib_net": ""},
+        "U7": { "model": "BLANK", "u": 7, "u_depth": 1, "management_net": "", "provisioning_net": "",  "heatmap": "", "ipoib_net": "", "ib_net": ""},
+        "U8": { "model": "BLANK", "u": 8, "u_depth": 1, "management_net": "", "provisioning_net": "",  "heatmap": "", "ipoib_net": "", "ib_net": ""}
+      }
+    },
+    "L15": {
+      "IBM_ID": "A5/C",
+      "U": 43,
+      "nodes": {
+        "U1": { "model": "BLANK", "u": 1, "u_depth": 1, "management_net": "", "provisioning_net": "",  "heatmap": "", "ipoib_net": "", "ib_net": ""},
+        "U2": { "model": "DX360_M4", "u": 2, "u_depth": 1, "management_net": "compute-e1-023-m", "provisioning_net": "compute-e1-023-p",  "heatmap": "compute-e1-023", "ipoib_net": "compute-e1-023-ib", "ib_net": "compute-e1-023-ib"},
+        "U3": { "model": "DX360_M4", "u": 3, "u_depth": 1, "management_net": "compute-e1-024-m", "provisioning_net": "compute-e1-024-p",  "heatmap": "compute-e1-024", "ipoib_net": "compute-e1-024-ib", "ib_net": "compute-e1-024-ib"},
+        "U4": { "model": "DX360_M4", "u": 4, "u_depth": 1, "management_net": "compute-e1-025-m", "provisioning_net": "compute-e1-025-p",  "heatmap": "compute-e1-025", "ipoib_net": "compute-e1-025-ib", "ib_net": "compute-e1-025-ib"},
+        "U5": { "model": "DX360_M4", "u": 5, "u_depth": 1, "management_net": "compute-e1-026-m", "provisioning_net": "compute-e1-026-p",  "heatmap": "compute-e1-026", "ipoib_net": "compute-e1-026-ib", "ib_net": "compute-e1-026-ib"},
+        "U6": { "model": "DX360_M4", "u": 6, "u_depth": 1, "management_net": "compute-e1-027-m", "provisioning_net": "compute-e1-027-p",  "heatmap": "compute-e1-027", "ipoib_net": "compute-e1-027-ib", "ib_net": "compute-e1-027-ib"},
+        "U7": { "model": "DX360_M4", "u": 7, "u_depth": 1, "management_net": "compute-e1-028-m", "provisioning_net": "compute-e1-028-p",  "heatmap": "compute-e1-028", "ipoib_net": "compute-e1-028-ib", "ib_net": "compute-e1-028-ib"},
+        "U8": { "model": "DX360_M4", "u": 8, "u_depth": 1, "management_net": "compute-e1-029-m", "provisioning_net": "compute-e1-029-p",  "heatmap": "compute-e1-029", "ipoib_net": "compute-e1-029-ib", "ib_net": "compute-e1-029-ib"},
+        "U9": { "model": "DX360_M4", "u": 9, "u_depth": 1, "management_net": "compute-e1-030-m", "provisioning_net": "compute-e1-030-p",  "heatmap": "compute-e1-030", "ipoib_net": "compute-e1-030-ib", "ib_net": "compute-e1-030-ib"},
+        "U10": { "model": "DX360_M4", "u": 10, "u_depth": 1, "management_net": "compute-e1-031-m", "provisioning_net": "compute-e1-031-p",  "heatmap": "compute-e1-031", "ipoib_net": "compute-e1-031-ib", "ib_net": "compute-e1-031-ib"},
+        "U11": { "model": "DX360_M4", "u": 11, "u_depth": 1, "management_net": "compute-e1-032-m", "provisioning_net": "compute-e1-032-p",  "heatmap": "compute-e1-032", "ipoib_net": "compute-e1-032-ib", "ib_net": "compute-e1-032-ib"},
+        "U12": { "model": "DX360_M4", "u": 12, "u_depth": 1, "management_net": "compute-e1-033-m", "provisioning_net": "compute-e1-033-p",  "heatmap": "compute-e1-033", "ipoib_net": "compute-e1-033-ib", "ib_net": "compute-e1-033-ib"},
+        "U13": { "model": "DX360_M4", "u": 13, "u_depth": 1, "management_net": "compute-e1-034-m", "provisioning_net": "compute-e1-034-p",  "heatmap": "compute-e1-034", "ipoib_net": "compute-e1-034-ib", "ib_net": "compute-e1-034-ib"},
+        "U14": { "model": "DX360_M4", "u": 14, "u_depth": 1, "management_net": "compute-e1-035-m", "provisioning_net": "compute-e1-035-p",  "heatmap": "compute-e1-035", "ipoib_net": "compute-e1-035-ib", "ib_net": "compute-e1-035-ib"},
+        "U15": { "model": "DX360_M4", "u": 15, "u_depth": 1, "management_net": "compute-e1-036-m", "provisioning_net": "compute-e1-036-p",  "heatmap": "compute-e1-036", "ipoib_net": "compute-e1-036-ib", "ib_net": "compute-e1-036-ib"},
+        "U16": { "model": "DX360_M4", "u": 16, "u_depth": 1, "management_net": "compute-e1-037-m", "provisioning_net": "compute-e1-037-p",  "heatmap": "compute-e1-037", "ipoib_net": "compute-e1-037-ib", "ib_net": "compute-e1-037-ib"},
+        "U17": { "model": "DX360_M4", "u": 17, "u_depth": 1, "management_net": "compute-e1-038-m", "provisioning_net": "compute-e1-038-p",  "heatmap": "compute-e1-038", "ipoib_net": "compute-e1-038-ib", "ib_net": "compute-e1-038-ib"},
+        "U18": { "model": "DX360_M4", "u": 18, "u_depth": 1, "management_net": "compute-e1-039-m", "provisioning_net": "compute-e1-039-p",  "heatmap": "compute-e1-039", "ipoib_net": "compute-e1-039-ib", "ib_net": "compute-e1-039-ib"},
+        "U19": { "model": "DX360_M4", "u": 19, "u_depth": 1, "management_net": "compute-e1-040-m", "provisioning_net": "compute-e1-040-p",  "heatmap": "compute-e1-040", "ipoib_net": "compute-e1-040-ib", "ib_net": "compute-e1-040-ib"},
+        "U20": { "model": "DX360_M4", "u": 20, "u_depth": 1, "management_net": "compute-e1-041-m", "provisioning_net": "compute-e1-041-p",  "heatmap": "compute-e1-041", "ipoib_net": "compute-e1-041-ib", "ib_net": "compute-e1-041-ib"},
+        "U21": { "model": "DX360_M4", "u": 21, "u_depth": 1, "management_net": "compute-e1-042-m", "provisioning_net": "compute-e1-042-p",  "heatmap": "compute-e1-042", "ipoib_net": "compute-e1-042-ib", "ib_net": "compute-e1-042-ib"},
+        "U22": { "model": "DX360_M4", "u": 22, "u_depth": 1, "management_net": "compute-e1-043-m", "provisioning_net": "compute-e1-043-p",  "heatmap": "compute-e1-043", "ipoib_net": "compute-e1-043-ib", "ib_net": "compute-e1-043-ib"},
+        "U23": { "model": "DX360_M4", "u": 23, "u_depth": 1, "management_net": "compute-e1-044-m", "provisioning_net": "compute-e1-044-p",  "heatmap": "compute-e1-044", "ipoib_net": "compute-e1-044-ib", "ib_net": "compute-e1-044-ib"},
+          //IVY BRIDGE
+        "U24": { "model": "DX360_M4", "u": 24, "u_depth": 1, "management_net": "compute-e1-063-m", "provisioning_net": "compute-e1-063-p",  "heatmap": "compute-e1-063", "ipoib_net": "compute-e1-063-ib", "ib_net": "compute-e1-063-ib"},
+        "U25": { "model": "DX360_M4", "u": 25, "u_depth": 1, "management_net": "compute-e1-064-m", "provisioning_net": "compute-e1-064-p",  "heatmap": "compute-e1-064", "ipoib_net": "compute-e1-064-ib", "ib_net": "compute-e1-064-ib"},
+        "U26": { "model": "DX360_M4", "u": 26, "u_depth": 1, "management_net": "compute-e1-065-m", "provisioning_net": "compute-e1-065-p",  "heatmap": "compute-e1-065", "ipoib_net": "compute-e1-065-ib", "ib_net": "compute-e1-065-ib"},
+        "U27": { "model": "DX360_M4", "u": 27, "u_depth": 1, "management_net": "compute-e1-066-m", "provisioning_net": "compute-e1-066-p",  "heatmap": "compute-e1-066", "ipoib_net": "compute-e1-066-ib", "ib_net": "compute-e1-066-ib"},
+        "U28": { "model": "DX360_M4", "u": 28, "u_depth": 1, "management_net": "compute-e1-067-m", "provisioning_net": "compute-e1-067-p",  "heatmap": "compute-e1-067", "ipoib_net": "compute-e1-067-ib", "ib_net": "compute-e1-067-ib"},
+        "U29": { "model": "DX360_M4", "u": 29, "u_depth": 1, "management_net": "compute-e1-068-m", "provisioning_net": "compute-e1-068-p",  "heatmap": "compute-e1-068", "ipoib_net": "compute-e1-068-ib", "ib_net": "compute-e1-068-ib"},
+        "U30": { "model": "DX360_M4", "u": 30, "u_depth": 1, "management_net": "compute-e1-069-m", "provisioning_net": "compute-e1-069-p",  "heatmap": "compute-e1-069", "ipoib_net": "compute-e1-069-ib", "ib_net": "compute-e1-069-ib"},
+        "U31": { "model": "DX360_M4", "u": 31, "u_depth": 1, "management_net": "compute-e1-070-m", "provisioning_net": "compute-e1-070-p",  "heatmap": "compute-e1-070", "ipoib_net": "compute-e1-070-ib", "ib_net": "compute-e1-070-ib"},
+        "U32": { "model": "DX360_M4", "u": 32, "u_depth": 1, "management_net": "compute-e1-071-m", "provisioning_net": "compute-e1-071-p",  "heatmap": "compute-e1-071", "ipoib_net": "compute-e1-071-ib", "ib_net": "compute-e1-071-ib"},
+        "U33": { "model": "DX360_M4", "u": 33, "u_depth": 1, "management_net": "compute-e1-072-m", "provisioning_net": "compute-e1-072-p",  "heatmap": "compute-e1-072", "ipoib_net": "compute-e1-072-ib", "ib_net": "compute-e1-072-ib"},
+        "U34": { "model": "DX360_M4", "u": 34, "u_depth": 1, "management_net": "compute-e1-073-m", "provisioning_net": "compute-e1-073-p",  "heatmap": "compute-e1-073", "ipoib_net": "compute-e1-073-ib", "ib_net": "compute-e1-073-ib"},
+        "U35": { "model": "DX360_M4", "u": 35, "u_depth": 1, "management_net": "compute-e1-074-m", "provisioning_net": "compute-e1-074-p",  "heatmap": "compute-e1-074", "ipoib_net": "compute-e1-074-ib", "ib_net": "compute-e1-074-ib"},
+        "U36": { "model": "DX360_M4", "u": 36, "u_depth": 1, "management_net": "compute-e1-075-m", "provisioning_net": "compute-e1-075-p",  "heatmap": "compute-e1-075", "ipoib_net": "compute-e1-075-ib", "ib_net": "compute-e1-075-ib"},
+        "U37": { "model": "DX360_M4", "u": 37, "u_depth": 1, "management_net": "compute-e1-076-m", "provisioning_net": "compute-e1-076-p",  "heatmap": "compute-e1-076", "ipoib_net": "compute-e1-076-ib", "ib_net": "compute-e1-076-ib"},
+        "U38": { "model": "DX360_M4", "u": 38, "u_depth": 1, "management_net": "compute-e1-077-m", "provisioning_net": "compute-e1-077-p",  "heatmap": "compute-e1-077", "ipoib_net": "compute-e1-077-ib", "ib_net": "compute-e1-077-ib"},
+        "U39": { "model": "DX360_M4", "u": 39, "u_depth": 1, "management_net": "compute-e1-078-m", "provisioning_net": "compute-e1-078-p",  "heatmap": "compute-e1-078", "ipoib_net": "compute-e1-078-ib", "ib_net": "compute-e1-078-ib"},
+        "U40": { "model": "DX360_M4", "u": 40, "u_depth": 1, "management_net": "compute-e1-079-m", "provisioning_net": "compute-e1-079-p",  "heatmap": "compute-e1-079", "ipoib_net": "compute-e1-079-ib", "ib_net": "compute-e1-079-ib"},
+        "U41": { "model": "DX360_M4", "u": 41, "u_depth": 1, "management_net": "compute-e1-080-m", "provisioning_net": "compute-e1-080-p",  "heatmap": "compute-e1-080", "ipoib_net": "compute-e1-080-ib", "ib_net": "compute-e1-080-ib"},
+        "U42": { "model": "DX360_M4", "u": 42, "u_depth": 1, "management_net": "compute-e1-081-m", "provisioning_net": "compute-e1-081-p",  "heatmap": "compute-e1-081", "ipoib_net": "compute-e1-081-ib", "ib_net": "compute-e1-081-ib"},
+        "U43": { "model": "DX360_M4", "u": 43, "u_depth": 1, "management_net": "compute-e1-082-m", "provisioning_net": "compute-e1-082-p",  "heatmap": "compute-e1-082", "ipoib_net": "compute-e1-082-ib", "ib_net": "compute-e1-082-ib"}
+      }
+    },
+    "L15_D": {
+      "IBM_ID": "A5/D",
+      "U": 8,
+      "nodes": {
+        "U1": { "model": "pdu", "u": 1, "u_depth": 1, "management_net": "pdu-e1-d-u1", "provisioning_net": "",  "heatmap": "", "ipoib_net": "", "ib_net": ""},
+        "U2": { "model": "BLANK", "u": 2, "u_depth": 1, "management_net": "", "provisioning_net": "",  "heatmap": "", "ipoib_net": "", "ib_net": ""},
+        "U3": { "model": "pdu", "u": 3, "u_depth": 1, "management_net": "pdu-e1-d-u3", "provisioning_net": "",  "heatmap": "", "ipoib_net": "", "ib_net": ""},
+        "U4": { "model": "switch", "u": 4, "u_depth": 1, "management_net": "exmgmt-a5-d4-m", "provisioning_net": "",  "heatmap": "", "ipoib_net": "", "ib_net": ""},
+        "U5": { "model": "pdu", "u": 5, "u_depth": 1, "management_net": "pdu-e1-d-u5", "provisioning_net": "",  "heatmap": "", "ipoib_net": "", "ib_net": ""},
+        "U6": { "model": "BLANK", "u": 6, "u_depth": 1, "management_net": "", "provisioning_net": "",  "heatmap": "", "ipoib_net": "", "ib_net": ""},
+        "U7": { "model": "BLANK", "u": 7, "u_depth": 1, "management_net": "", "provisioning_net": "",  "heatmap": "", "ipoib_net": "", "ib_net": ""},
+        "U8": { "model": "BLANK", "u": 8, "u_depth": 1, "management_net": "", "provisioning_net": "",  "heatmap": "", "ipoib_net": "", "ib_net": ""}
+      }
+    },
+    "O15": {
+      "IBM_ID": "",
+      "U": 48,
+      "nodes": {
+        "U1": { "model": "BLANK", "u": 1, "u_depth": 48, "management_net": "", "provisioning_net": "",  "heatmap": "", "ipoib_net": "", "ib_net": ""}
+      }
+    },
+    "B18": {
+      "IBM_ID": "A2",
+      "U": 42,
+      "nodes": {
+        "U1": { "model": "EXP3524", "u": 1, "u_depth": 2, "management_net": "", "provisioning_net": "",  "heatmap": "", "ipoib_net": "", "ib_net": "", "tray_id": 1}, //metadate-ssds
+        "U3": { "model": "EXP3524", "u": 3, "u_depth": 2, "management_net": "", "provisioning_net": "",  "heatmap": "", "ipoib_net": "", "ib_net": "", "tray_id": 0}, //metadata-300G-SAS
+        "U5": { "model": "DS3524", "u": 5, "u_depth": 1, "management_net": "gpfsmeta-a3-a1-m", "provisioning_net": "",  "heatmap": "", "ipoib_net": "", "ib_net": "", "tray_id": 99}, //metadata-146G-SAS Controller 1
+        "U6": { "model": "DS3524", "u": 6, "u_depth": 1, "management_net": "gpfsmeta-a3-b1-m", "provisioning_net": "",  "heatmap": "", "ipoib_net": "", "ib_net": "", "tray_id": 99}, //metadata-146G-SAS Controller 2
+        "U7": { "model": "DS3524", "u": 7, "u_depth": 1, "management_net": "storage-neve-a3-001-m", "provisioning_net": "",  "heatmap": "", "ipoib_net": "", "ib_net": "", "tray_id": 99}, //900G SAS Controller 1
+        "U8": { "model": "DS3524", "u": 8, "u_depth": 1, "management_net": "storage-neve-a3-002-m", "provisioning_net": "",  "heatmap": "", "ipoib_net": "", "ib_net": "", "tray_id": 99}, //900G SAS Controller 2
+        "U9": { "model": "EXP3512", "u": 9, "u_depth": 2, "management_net": "", "provisioning_net": "",  "heatmap": "", "ipoib_net": "", "ib_net": "", "tray_id": 0}, //3T SATA
+        "U11": { "model": "EXP3512", "u": 11, "u_depth": 2, "management_net": "", "provisioning_net": "",  "heatmap": "", "ipoib_net": "", "ib_net": "", "tray_id": 1}, //3T SATA
+        "U13": { "model": "EXP3512", "u": 13, "u_depth": 2, "management_net": "", "provisioning_net": "",  "heatmap": "", "ipoib_net": "", "ib_net": "", "tray_id": 2}, //3T SATA
+        "U15": { "model": "EXP3512", "u": 15, "u_depth": 2, "management_net": "", "provisioning_net": "",  "heatmap": "", "ipoib_net": "", "ib_net": "", "tray_id": 3}, //3T SATA
+        "U17": { "model": "X3650_M3", "u": 17, "u_depth": 2, "management_net": "xcat-m", "provisioning_net": "xcat-p", "heatmap": "", "ipoib_net": "xcat-ib", "ib_net": "xcat-ib"}, 
+        "U19": { "model": "G8124", "u": 19, "u_depth": 1, "management_net": "ex-260-p101a-nesi-a2-1-m", "provisioning_net": "",  "heatmap": "", "ipoib_net": "", "ib_net": ""}, 
+        "U20": { "model": "G8124", "u": 20, "u_depth": 1, "management_net": "ex-260-p101a-nesi-a2-2-m", "provisioning_net": "",  "heatmap": "", "ipoib_net": "", "ib_net": ""}, 
+        "U21": { "model": "IBM_KEYBOARD", "u": 21, "u_depth": 1, "management_net": "", "provisioning_net": "",  "heatmap": "", "ipoib_net": "", "ib_net": ""}, 
+        "U22": { "model": "LCM16", "u": 22, "u_depth": 1, "management_net": "ibm-console-m", "provisioning_net": "",  "heatmap": "", "ipoib_net": "", "ib_net": ""}, 
+        "U23": { "model": "X3650_M3", "u": 23, "u_depth": 2, "management_net": "loadleveller-m", "provisioning_net": "loadleveller-p", "heatmap": "", "ipoib_net": "loadleveller-ib", "ib_net": "loadleveller-ib"}, 
+        "U25": { "model": "X3650_M3", "u": 25, "u_depth": 2, "management_net": "transfer-m", "provisioning_net": "transfer-p", "heatmap": "", "ipoib_net": "transfer-ib", "ib_net": "transfer-ib"}, 
+        "U27": { "model": "X3850_X5", "u": 27, "u_depth": 4, "management_net": "compute-bigmem-001-m", "provisioning_net": "compute-bigmem-001-p",  "heatmap": "compute-bigmem-001", "ipoib_net": "compute-bigmem-001-ib", "ib_net": "compute-bigmem-001-ib"}, 
+        "U31": { "model": "X3850_X5", "u": 31, "u_depth": 4, "management_net": "vs02-m", "provisioning_net": "vs02-p", "heatmap": "", "ipoib_net": "", "ib_net": ""}, 
+        "U35": { "model": "X3850_X5", "u": 35, "u_depth": 4, "management_net": "compute-bigmem-003-m", "provisioning_net": "compute-bigmem-003-p",  "heatmap": "compute-bigmem-003", "ipoib_net": "compute-bigmem-003-ib", "ib_net": "compute-bigmem-003-ib"}, 
+        "U39": { "model": "X3850_X5", "u": 39, "u_depth": 4, "management_net": "compute-bigmem-004-m", "provisioning_net": "compute-bigmem-004-p",  "heatmap": "compute-bigmem-004", "ipoib_net": "compute-bigmem-004-ib", "ib_net": "compute-bigmem-004-ib"} 
+      }
+    },
+    "B18_A": {
+      "IBM_ID": "A2/A",
+      "U": 1,
+      "nodes": {
+        "U1": { "model": "pdu", "u": 1, "u_depth": 1, "management_net": "pdu-a2-a-u1", "provisioning_net": "",  "heatmap": "", "ipoib_net": "", "ib_net": ""}
+      }
+    },
+    "B18_B": {
+      "IBM_ID": "A2/B",
+      "U": 1,
+      "nodes": {
+        "U1": { "model": "pdu", "u": 1, "u_depth": 1, "management_net": "pdu-a2-b-u1", "provisioning_net": "",  "heatmap": "", "ipoib_net": "", "ib_net": ""}
+      }
+    },
+    "B18_C": {
+      "IBM_ID": "A2/C",
+      "U": 1,
+      "nodes": {
+        "U1": { "model": "pdu", "u": 1, "u_depth": 1, "management_net": "pdu-a2-c-u1", "provisioning_net": "",  "heatmap": "", "ipoib_net": "", "ib_net": ""}
+      }
+    },
+    "B18_D": {
+      "IBM_ID": "A2/D",
+      "U": 1,
+      "nodes": {
+        "U1": { "model": "pdu", "u": 1, "u_depth": 1, "management_net": "pdu-a2-d-u1", "provisioning_net": "",  "heatmap": "", "ipoib_net": "", "ib_net": ""}
+      }
+    },
+    "D18": {
+      "IBM_ID": "A1/C",
+      "U": 43,
+      "nodes": {
+        "U1": { "model": "BLANK", "u": 1, "u_depth": 1, "management_net": "", "provisioning_net": "",  "heatmap": "", "ipoib_net": "", "ib_net": ""},
+        "U2": { "model": "DX360_M3", "u": 2, "u_depth": 1, "management_net": "compute-a1-043-m", "provisioning_net": "compute-a1-043-p",  "heatmap": "compute-a1-043", "ipoib_net": "compute-a1-043-ib", "ib_net": "compute-a1-043-ib"},
+        "U3": { "model": "DX360_M3", "u": 3, "u_depth": 1, "management_net": "compute-a1-044-m", "provisioning_net": "compute-a1-044-p",  "heatmap": "compute-a1-044", "ipoib_net": "compute-a1-044-ib", "ib_net": "compute-a1-044-ib"},
+        "U4": { "model": "DX360_M3", "u": 4, "u_depth": 1, "management_net": "compute-a1-045-m", "provisioning_net": "compute-a1-045-p",  "heatmap": "compute-a1-045", "ipoib_net": "compute-a1-045-ib", "ib_net": "compute-a1-045-ib"},
+        "U5": { "model": "DX360_M3", "u": 5, "u_depth": 1, "management_net": "compute-a1-046-m", "provisioning_net": "compute-a1-046-p",  "heatmap": "compute-a1-046", "ipoib_net": "compute-a1-046-ib", "ib_net": "compute-a1-046-ib"},
+        "U6": { "model": "DX360_M3", "u": 6, "u_depth": 1, "management_net": "compute-a1-047-m", "provisioning_net": "compute-a1-047-p",  "heatmap": "compute-a1-047", "ipoib_net": "compute-a1-047-ib", "ib_net": "compute-a1-047-ib"},
+        "U7": { "model": "DX360_M3", "u": 7, "u_depth": 1, "management_net": "compute-a1-048-m", "provisioning_net": "compute-a1-048-p",  "heatmap": "compute-a1-048", "ipoib_net": "compute-a1-048-ib", "ib_net": "compute-a1-048-ib"},
+        "U8": { "model": "DX360_M3", "u": 8, "u_depth": 1, "management_net": "compute-a1-049-m", "provisioning_net": "compute-a1-049-p",  "heatmap": "compute-a1-049", "ipoib_net": "compute-a1-049-ib", "ib_net": "compute-a1-049-ib"},
+        "U9": { "model": "DX360_M3", "u": 9, "u_depth": 1, "management_net": "compute-a1-050-m", "provisioning_net": "compute-a1-050-p",  "heatmap": "compute-a1-050", "ipoib_net": "compute-a1-050-ib", "ib_net": "compute-a1-050-ib"},
+        "U10": { "model": "DX360_M3", "u": 10, "u_depth": 1, "management_net": "compute-a1-051-m", "provisioning_net": "compute-a1-051-p",  "heatmap": "compute-a1-051", "ipoib_net": "compute-a1-051-ib", "ib_net": "compute-a1-051-ib"},
+        "U11": { "model": "DX360_M3", "u": 11, "u_depth": 1, "management_net": "compute-a1-052-m", "provisioning_net": "compute-a1-052-p",  "heatmap": "compute-a1-052", "ipoib_net": "compute-a1-052-ib", "ib_net": "compute-a1-052-ib"},
+        "U12": { "model": "DX360_M3", "u": 12, "u_depth": 1, "management_net": "compute-a1-053-m", "provisioning_net": "compute-a1-053-p",  "heatmap": "compute-a1-053", "ipoib_net": "compute-a1-053-ib", "ib_net": "compute-a1-053-ib"},
+        "U13": { "model": "DX360_M3", "u": 13, "u_depth": 1, "management_net": "compute-a1-054-m", "provisioning_net": "compute-a1-054-p",  "heatmap": "compute-a1-054", "ipoib_net": "compute-a1-054-ib", "ib_net": "compute-a1-054-ib"},
+        "U14": { "model": "DX360_M3", "u": 14, "u_depth": 1, "management_net": "compute-a1-055-m", "provisioning_net": "compute-a1-055-p",  "heatmap": "compute-a1-055", "ipoib_net": "compute-a1-055-ib", "ib_net": "compute-a1-055-ib"},
+        "U15": { "model": "DX360_M3", "u": 15, "u_depth": 1, "management_net": "compute-a1-056-m", "provisioning_net": "compute-a1-056-p",  "heatmap": "compute-a1-056", "ipoib_net": "compute-a1-056-ib", "ib_net": "compute-a1-056-ib"},
+        "U16": { "model": "DX360_M3_GPU", "u": 16, "u_depth": 2, "management_net": "compute-gpu-a1-001-m", "provisioning_net": "compute-gpu-a1-001-p",  "heatmap": "compute-gpu-a1-001", "ipoib_net": "compute-gpu-a1-001-ib", "ib_net": "compute-gpu-a1-001-ib"},
+        "U18": { "model": "DX360_M3_GPU", "u": 18, "u_depth": 2, "management_net": "compute-gpu-a1-002-m", "provisioning_net": "compute-gpu-a1-002-p",  "heatmap": "compute-gpu-a1-002", "ipoib_net": "compute-gpu-a1-002-ib", "ib_net": "compute-gpu-a1-002-ib"},
+        "U20": { "model": "DX360_M3_GPU", "u": 20, "u_depth": 2, "management_net": "compute-gpu-a1-003-m", "provisioning_net": "compute-gpu-a1-003-p",  "heatmap": "compute-gpu-a1-003", "ipoib_net": "compute-gpu-a1-003-ib", "ib_net": "compute-gpu-a1-003-ib"},
+        "U22": { "model": "DX360_M3_GPU", "u": 22, "u_depth": 2, "management_net": "compute-gpu-a1-004-m", "provisioning_net": "compute-gpu-a1-004-p",  "heatmap": "compute-gpu-a1-004", "ipoib_net": "compute-gpu-a1-004-ib", "ib_net": "compute-gpu-a1-004-ib"},
+        "U24": { "model": "DX360_M3", "u": 24, "u_depth": 1, "management_net": "compute-a1-057-m", "provisioning_net": "compute-a1-057-p",  "heatmap": "compute-a1-057", "ipoib_net": "compute-a1-057-ib", "ib_net": "compute-a1-057-ib"},
+        "U25": { "model": "DX360_M3", "u": 25, "u_depth": 1, "management_net": "compute-a1-058-m", "provisioning_net": "compute-a1-058-p",  "heatmap": "compute-a1-058", "ipoib_net": "compute-a1-058-ib", "ib_net": "compute-a1-058-ib"},
+        "U26": { "model": "DX360_M3", "u": 26, "u_depth": 1, "management_net": "compute-a1-059-m", "provisioning_net": "compute-a1-059-p",  "heatmap": "compute-a1-059", "ipoib_net": "compute-a1-059-ib", "ib_net": "compute-a1-059-ib"},
+        "U27": { "model": "DX360_M3", "u": 27, "u_depth": 1, "management_net": "compute-a1-060-m", "provisioning_net": "compute-a1-060-p",  "heatmap": "compute-a1-060", "ipoib_net": "compute-a1-060-ib", "ib_net": "compute-a1-060-ib"},
+        "U28": { "model": "DX360_M3", "u": 28, "u_depth": 1, "management_net": "compute-a1-061-m", "provisioning_net": "compute-a1-061-p",  "heatmap": "compute-a1-061", "ipoib_net": "compute-a1-061-ib", "ib_net": "compute-a1-061-ib"},
+        "U29": { "model": "DX360_M3", "u": 29, "u_depth": 1, "management_net": "compute-a1-062-m", "provisioning_net": "compute-a1-062-p",  "heatmap": "compute-a1-062", "ipoib_net": "compute-a1-062-ib", "ib_net": "compute-a1-062-ib"},
+        "U30": { "model": "DX360_M3", "u": 30, "u_depth": 1, "management_net": "compute-a1-063-m", "provisioning_net": "compute-a1-063-p",  "heatmap": "compute-a1-063", "ipoib_net": "compute-a1-063-ib", "ib_net": "compute-a1-063-ib"},
+        "U31": { "model": "DX360_M3", "u": 31, "u_depth": 1, "management_net": "compute-a1-064-m", "provisioning_net": "compute-a1-064-p",  "heatmap": "compute-a1-064", "ipoib_net": "compute-a1-064-ib", "ib_net": "compute-a1-064-ib"},
+        "U32": { "model": "DX360_M3", "u": 32, "u_depth": 1, "management_net": "compute-a1-065-m", "provisioning_net": "compute-a1-065-p",  "heatmap": "compute-a1-065", "ipoib_net": "compute-a1-065-ib", "ib_net": "compute-a1-065-ib"},
+        "U33": { "model": "DX360_M3", "u": 33, "u_depth": 1, "management_net": "compute-a1-066-m", "provisioning_net": "compute-a1-066-p",  "heatmap": "compute-a1-066", "ipoib_net": "compute-a1-066-ib", "ib_net": "compute-a1-066-ib"},
+        "U34": { "model": "DX360_M3", "u": 34, "u_depth": 1, "management_net": "compute-a1-067-m", "provisioning_net": "compute-a1-067-p",  "heatmap": "compute-a1-067", "ipoib_net": "compute-a1-067-ib", "ib_net": "compute-a1-067-ib"},
+        "U35": { "model": "DX360_M3", "u": 35, "u_depth": 1, "management_net": "compute-a1-068-m", "provisioning_net": "compute-a1-068-p",  "heatmap": "compute-a1-068", "ipoib_net": "compute-a1-068-ib", "ib_net": "compute-a1-068-ib"},
+        "U36": { "model": "DX360_M3", "u": 36, "u_depth": 1, "management_net": "compute-a1-069-m", "provisioning_net": "compute-a1-069-p",  "heatmap": "compute-a1-069", "ipoib_net": "compute-a1-069-ib", "ib_net": "compute-a1-069-ib"},
+        "U37": { "model": "DX360_M3", "u": 37, "u_depth": 1, "management_net": "compute-a1-070-m", "provisioning_net": "compute-a1-070-p",  "heatmap": "compute-a1-070", "ipoib_net": "compute-a1-070-ib", "ib_net": "compute-a1-070-ib"},
+        "U38": { "model": "DX360_M3", "u": 38, "u_depth": 1, "management_net": "compute-a1-071-m", "provisioning_net": "compute-a1-071-p",  "heatmap": "compute-a1-071", "ipoib_net": "compute-a1-071-ib", "ib_net": "compute-a1-071-ib"},
+        "U39": { "model": "DX360_M3", "u": 39, "u_depth": 1, "management_net": "compute-a1-072-m", "provisioning_net": "compute-a1-072-p",  "heatmap": "compute-a1-072", "ipoib_net": "compute-a1-072-ib", "ib_net": "compute-a1-072-ib"},
+        "U40": { "model": "DX360_M3", "u": 40, "u_depth": 1, "management_net": "compute-a1-073-m", "provisioning_net": "compute-a1-073-p",  "heatmap": "compute-a1-073", "ipoib_net": "compute-a1-073-ib", "ib_net": "compute-a1-073-ib"},
+        "U41": { "model": "DX360_M3", "u": 41, "u_depth": 1, "management_net": "compute-a1-074-m", "provisioning_net": "compute-a1-074-p",  "heatmap": "compute-a1-074", "ipoib_net": "compute-a1-074-ib", "ib_net": "compute-a1-074-ib"},
+        "U42": { "model": "DX360_M3", "u": 42, "u_depth": 1, "management_net": "compute-a1-075-m", "provisioning_net": "compute-a1-075-p",  "heatmap": "compute-a1-075", "ipoib_net": "compute-a1-075-ib", "ib_net": "compute-a1-075-ib"},
+        "U43": { "model": "DX360_M3", "u": 43, "u_depth": 1, "management_net": "compute-a1-076-m", "provisioning_net": "compute-a1-076-p",  "heatmap": "compute-a1-076", "ipoib_net": "compute-a1-076-ib", "ib_net": "compute-a1-076-ib"}
+      }
+    },
+    "D18_D": {
+      "IBM_ID": "A1/D",
+      "U": 8,
+      "nodes": {
+        "U1": { "model": "pdu", "u": 1, "u_depth": 1, "management_net": "pdu-a1-d-u1", "provisioning_net": "",  "heatmap": "", "ipoib_net": "", "ib_net": ""},
+        "U2": { "model": "BLANK", "u": 2, "u_depth": 1, "management_net": "", "provisioning_net": "",  "heatmap": "", "ipoib_net": "", "ib_net": ""},
+        "U3": { "model": "pdu", "u": 3, "u_depth": 1, "management_net": "pdu-a1-d-u3", "provisioning_net": "",  "heatmap": "", "ipoib_net": "", "ib_net": ""},
+        "U4": { "model": "switch", "u": 4, "u_depth": 1, "management_net": "exmgmt-a1-d4-m", "provisioning_net": "",  "heatmap": "", "ipoib_net": "", "ib_net": ""},
+        "U5": { "model": "BLANK", "u": 5, "u_depth": 1, "management_net": "", "provisioning_net": "",  "heatmap": "", "ipoib_net": "", "ib_net": ""},
+        "U6": { "model": "switch", "u": 6, "u_depth": 1, "management_net": "exmgmt-a1-d6-m", "provisioning_net": "",  "heatmap": "", "ipoib_net": "", "ib_net": ""},
+        "U7": { "model": "BLANK", "u": 7, "u_depth": 1, "management_net": "", "provisioning_net": "",  "heatmap": "", "ipoib_net": "", "ib_net": ""},
+        "U8": { "model": "BLANK", "u": 8, "u_depth": 1, "management_net": "", "provisioning_net": "",  "heatmap": "", "ipoib_net": "", "ib_net": ""}
+      }
+    },
+    "E18": {
+      "IBM_ID": "A1/A",
+      "U": 43,
+      "nodes": {
+        "U1": { "model": "DX360_M3", "u": 1, "u_depth": 1, "management_net": "compute-a1-001-m", "provisioning_net": "compute-a1-001-p",  "heatmap": "compute-a1-001", "ipoib_net": "compute-a1-001-ib", "ib_net": "compute-a1-001-ib"},
+        "U2": { "model": "DX360_M3", "u": 2, "u_depth": 1, "management_net": "compute-a1-002-m", "provisioning_net": "compute-a1-002-p",  "heatmap": "compute-a1-002", "ipoib_net": "compute-a1-002-ib", "ib_net": "compute-a1-002-ib"},
+        "U3": { "model": "DX360_M3", "u": 3, "u_depth": 1, "management_net": "compute-a1-003-m", "provisioning_net": "compute-a1-003-p",  "heatmap": "compute-a1-003", "ipoib_net": "compute-a1-003-ib", "ib_net": "compute-a1-003-ib"},
+        "U4": { "model": "DX360_M3", "u": 4, "u_depth": 1, "management_net": "compute-a1-004-m", "provisioning_net": "compute-a1-004-p",  "heatmap": "compute-a1-004", "ipoib_net": "compute-a1-004-ib", "ib_net": "compute-a1-004-ib"},
+        "U5": { "model": "DX360_M3", "u": 5, "u_depth": 1, "management_net": "compute-a1-005-m", "provisioning_net": "compute-a1-005-p",  "heatmap": "compute-a1-005", "ipoib_net": "compute-a1-005-ib", "ib_net": "compute-a1-005-ib"},
+        "U6": { "model": "DX360_M3", "u": 6, "u_depth": 1, "management_net": "compute-a1-006-m", "provisioning_net": "compute-a1-006-p",  "heatmap": "compute-a1-006", "ipoib_net": "compute-a1-006-ib", "ib_net": "compute-a1-006-ib"},
+        "U7": { "model": "DX360_M3", "u": 7, "u_depth": 1, "management_net": "compute-a1-007-m", "provisioning_net": "compute-a1-007-p",  "heatmap": "compute-a1-007", "ipoib_net": "compute-a1-007-ib", "ib_net": "compute-a1-007-ib"},
+        "U8": { "model": "DX360_M3", "u": 8, "u_depth": 1, "management_net": "compute-a1-008-m", "provisioning_net": "compute-a1-008-p",  "heatmap": "compute-a1-008", "ipoib_net": "compute-a1-008-ib", "ib_net": "compute-a1-008-ib"},
+        "U9": { "model": "DX360_M3", "u": 9, "u_depth": 1, "management_net": "compute-a1-009-m", "provisioning_net": "compute-a1-009-p",  "heatmap": "compute-a1-009", "ipoib_net": "compute-a1-009-ib", "ib_net": "compute-a1-009-ib"},
+        "U10": { "model": "DX360_M3", "u": 10, "u_depth": 1, "management_net": "compute-a1-010-m", "provisioning_net": "compute-a1-010-p",  "heatmap": "compute-a1-010", "ipoib_net": "compute-a1-010-ib", "ib_net": "compute-a1-010-ib"},
+        "U11": { "model": "DX360_M3", "u": 11, "u_depth": 1, "management_net": "compute-a1-011-m", "provisioning_net": "compute-a1-011-p",  "heatmap": "compute-a1-011", "ipoib_net": "compute-a1-011-ib", "ib_net": "compute-a1-011-ib"},
+        "U12": { "model": "DX360_M3", "u": 12, "u_depth": 1, "management_net": "compute-a1-012-m", "provisioning_net": "compute-a1-012-p",  "heatmap": "compute-a1-012", "ipoib_net": "compute-a1-012-ib", "ib_net": "compute-a1-012-ib"},
+        "U13": { "model": "DX360_M3", "u": 13, "u_depth": 1, "management_net": "compute-a1-013-m", "provisioning_net": "compute-a1-013-p",  "heatmap": "compute-a1-013", "ipoib_net": "compute-a1-013-ib", "ib_net": "compute-a1-013-ib"},
+        "U14": { "model": "DX360_M3", "u": 14, "u_depth": 1, "management_net": "compute-a1-014-m", "provisioning_net": "compute-a1-014-p",  "heatmap": "compute-a1-014", "ipoib_net": "compute-a1-014-ib", "ib_net": "compute-a1-014-ib"},
+        "U15": { "model": "DX360_M3", "u": 15, "u_depth": 1, "management_net": "compute-a1-015-m", "provisioning_net": "compute-a1-015-p",  "heatmap": "compute-a1-015", "ipoib_net": "compute-a1-015-ib", "ib_net": "compute-a1-015-ib"},
+        "U16": { "model": "DX360_M3", "u": 16, "u_depth": 1, "management_net": "compute-a1-016-m", "provisioning_net": "compute-a1-016-p",  "heatmap": "compute-a1-016", "ipoib_net": "compute-a1-016-ib", "ib_net": "compute-a1-016-ib"},
+        "U17": { "model": "DX360_M3", "u": 17, "u_depth": 1, "management_net": "compute-a1-017-m", "provisioning_net": "compute-a1-017-p",  "heatmap": "compute-a1-017", "ipoib_net": "compute-a1-017-ib", "ib_net": "compute-a1-017-ib"},
+        "U18": { "model": "DX360_M3", "u": 18, "u_depth": 1, "management_net": "compute-a1-018-m", "provisioning_net": "compute-a1-018-p",  "heatmap": "compute-a1-018", "ipoib_net": "compute-a1-018-ib", "ib_net": "compute-a1-018-ib"},
+        "U19": { "model": "DX360_M3", "u": 19, "u_depth": 1, "management_net": "compute-a1-019-m", "provisioning_net": "compute-a1-019-p",  "heatmap": "compute-a1-019", "ipoib_net": "compute-a1-019-ib", "ib_net": "compute-a1-019-ib"},
+        "U20": { "model": "DX360_M3", "u": 20, "u_depth": 1, "management_net": "compute-a1-020-m", "provisioning_net": "compute-a1-020-p",  "heatmap": "compute-a1-020", "ipoib_net": "compute-a1-020-ib", "ib_net": "compute-a1-020-ib"},
+        "U21": { "model": "DX360_M3", "u": 21, "u_depth": 1, "management_net": "compute-a1-021-m", "provisioning_net": "compute-a1-021-p",  "heatmap": "compute-a1-021", "ipoib_net": "compute-a1-021-ib", "ib_net": "compute-a1-021-ib"},
+        "U22": { "model": "DX360_M3", "u": 22, "u_depth": 1, "management_net": "compute-a1-022-m", "provisioning_net": "compute-a1-022-p",  "heatmap": "compute-a1-022", "ipoib_net": "compute-a1-022-ib", "ib_net": "compute-a1-022-ib"},
+        "U23": { "model": "DX360_M3", "u": 23, "u_depth": 1, "management_net": "compute-a1-023-m", "provisioning_net": "compute-a1-023-p",  "heatmap": "compute-a1-023", "ipoib_net": "compute-a1-023-ib", "ib_net": "compute-a1-023-ib"},
+        "U24": { "model": "DX360_M3", "u": 24, "u_depth": 1, "management_net": "compute-a1-024-m", "provisioning_net": "compute-a1-024-p",  "heatmap": "compute-a1-024", "ipoib_net": "compute-a1-024-ib", "ib_net": "compute-a1-024-ib"},
+        "U25": { "model": "DX360_M3", "u": 25, "u_depth": 1, "management_net": "compute-a1-025-m", "provisioning_net": "compute-a1-025-p",  "heatmap": "compute-a1-025", "ipoib_net": "compute-a1-025-ib", "ib_net": "compute-a1-025-ib"},
+        "U26": { "model": "DX360_M3", "u": 26, "u_depth": 1, "management_net": "compute-a1-026-m", "provisioning_net": "compute-a1-026-p",  "heatmap": "compute-a1-026", "ipoib_net": "compute-a1-026-ib", "ib_net": "compute-a1-026-ib"},
+        "U27": { "model": "DX360_M3", "u": 27, "u_depth": 1, "management_net": "compute-a1-027-m", "provisioning_net": "compute-a1-027-p",  "heatmap": "compute-a1-027", "ipoib_net": "compute-a1-027-ib", "ib_net": "compute-a1-027-ib"},
+        "U28": { "model": "DX360_M3", "u": 28, "u_depth": 1, "management_net": "compute-a1-028-m", "provisioning_net": "compute-a1-028-p",  "heatmap": "compute-a1-028", "ipoib_net": "compute-a1-028-ib", "ib_net": "compute-a1-028-ib"},
+        "U29": { "model": "DX360_M3", "u": 29, "u_depth": 1, "management_net": "compute-a1-029-m", "provisioning_net": "compute-a1-029-p",  "heatmap": "compute-a1-029", "ipoib_net": "compute-a1-029-ib", "ib_net": "compute-a1-029-ib"},
+        "U30": { "model": "DX360_M3", "u": 30, "u_depth": 1, "management_net": "compute-a1-030-m", "provisioning_net": "compute-a1-030-p",  "heatmap": "compute-a1-030", "ipoib_net": "compute-a1-030-ib", "ib_net": "compute-a1-030-ib"},
+        "U31": { "model": "DX360_M3", "u": 31, "u_depth": 1, "management_net": "compute-a1-031-m", "provisioning_net": "compute-a1-031-p",  "heatmap": "compute-a1-031", "ipoib_net": "compute-a1-031-ib", "ib_net": "compute-a1-031-ib"},
+        "U32": { "model": "DX360_M3", "u": 32, "u_depth": 1, "management_net": "compute-a1-032-m", "provisioning_net": "compute-a1-032-p",  "heatmap": "compute-a1-032", "ipoib_net": "compute-a1-032-ib", "ib_net": "compute-a1-032-ib"},
+        "U33": { "model": "DX360_M3", "u": 33, "u_depth": 1, "management_net": "compute-a1-033-m", "provisioning_net": "compute-a1-033-p",  "heatmap": "compute-a1-033", "ipoib_net": "compute-a1-033-ib", "ib_net": "compute-a1-033-ib"},
+        "U34": { "model": "DX360_M3", "u": 34, "u_depth": 1, "management_net": "compute-a1-034-m", "provisioning_net": "compute-a1-034-p",  "heatmap": "compute-a1-034", "ipoib_net": "compute-a1-034-ib", "ib_net": "compute-a1-034-ib"},
+        "U35": { "model": "DX360_M3", "u": 35, "u_depth": 1, "management_net": "compute-a1-035-m", "provisioning_net": "compute-a1-035-p",  "heatmap": "compute-a1-035", "ipoib_net": "compute-a1-035-ib", "ib_net": "compute-a1-035-ib"},
+        "U36": { "model": "DX360_M3", "u": 36, "u_depth": 1, "management_net": "compute-a1-036-m", "provisioning_net": "compute-a1-036-p",  "heatmap": "compute-a1-036", "ipoib_net": "compute-a1-036-ib", "ib_net": "compute-a1-036-ib"},
+        "U37": { "model": "DX360_M3", "u": 37, "u_depth": 1, "management_net": "compute-a1-037-m", "provisioning_net": "compute-a1-037-p",  "heatmap": "compute-a1-037", "ipoib_net": "compute-a1-037-ib", "ib_net": "compute-a1-037-ib"},
+        "U38": { "model": "DX360_M3", "u": 38, "u_depth": 1, "management_net": "compute-a1-038-m", "provisioning_net": "compute-a1-038-p",  "heatmap": "compute-a1-038", "ipoib_net": "compute-a1-038-ib", "ib_net": "compute-a1-038-ib"},
+        "U39": { "model": "DX360_M3", "u": 39, "u_depth": 1, "management_net": "compute-a1-039-m", "provisioning_net": "compute-a1-039-p",  "heatmap": "compute-a1-039", "ipoib_net": "compute-a1-039-ib", "ib_net": "compute-a1-039-ib"},
+        "U40": { "model": "DX360_M3", "u": 40, "u_depth": 1, "management_net": "compute-a1-040-m", "provisioning_net": "compute-a1-040-p",  "heatmap": "compute-a1-040", "ipoib_net": "compute-a1-040-ib", "ib_net": "compute-a1-040-ib"},
+        "U41": { "model": "DX360_M3", "u": 41, "u_depth": 1, "management_net": "compute-a1-041-m", "provisioning_net": "compute-a1-041-p",  "heatmap": "compute-a1-041", "ipoib_net": "compute-a1-041-ib", "ib_net": "compute-a1-041-ib"},
+        "U42": { "model": "DX360_M3", "u": 42, "u_depth": 1, "management_net": "compute-a1-042-m", "provisioning_net": "compute-a1-042-p",  "heatmap": "compute-a1-042", "ipoib_net": "compute-a1-042-ib", "ib_net": "compute-a1-042-ib"},
+        "U43": { "model": "BLANK", "u": 43, "u_depth": 1, "management_net": "", "provisioning_net": "",  "heatmap": "", "ipoib_net": "", "ib_net": ""}
+      }
+    },
+    "E18_B": {
+      "IBM_ID": "A1/B",
+      "U": 8,
+      "nodes": {
+        "U1": { "model": "pdu", "u": 1, "u_depth": 1, "management_net": "pdu-a1-b-u1", "provisioning_net": "",  "heatmap": "", "ipoib_net": "", "ib_net": ""},
+        "U2": { "model": "BLANK", "u": 2, "u_depth": 1, "management_net": "", "provisioning_net": "",  "heatmap": "", "ipoib_net": "", "ib_net": ""},
+        "U3": { "model": "pdu", "u": 3, "u_depth": 1, "management_net": "pdu-a1-b-u3", "provisioning_net": "",  "heatmap": "", "ipoib_net": "", "ib_net": ""},
+        "U4": { "model": "switch", "u": 4, "u_depth": 1, "management_net": "exmgmt-a1-b4-m", "provisioning_net": "",  "heatmap": "", "ipoib_net": "", "ib_net": ""},
+        "U5": { "model": "BLANK", "u": 5, "u_depth": 1, "management_net": "", "provisioning_net": "",  "heatmap": "", "ipoib_net": "", "ib_net": ""},
+        "U6": { "model": "switch", "u": 6, "u_depth": 1, "management_net": "exmgmt-a1-b6-m", "provisioning_net": "",  "heatmap": "", "ipoib_net": "", "ib_net": ""},
+        "U7": { "model": "BLANK", "u": 7, "u_depth": 1, "management_net": "", "provisioning_net": "",  "heatmap": "", "ipoib_net": "", "ib_net": ""},
+        "U8": { "model": "BLANK", "u": 8, "u_depth": 1, "management_net": "", "provisioning_net": "",  "heatmap": "", "ipoib_net": "", "ib_net": ""}
+      }
+    },
+    "G18": {
+      "IBM_ID": "C2",
+      "U": 42,
+      "nodes": {
+        "U1": { "model": "BLANK", "u": 1, "u_depth": 4, "management_net": "", "provisioning_net": "",  "heatmap": "", "ipoib_net": "", "ib_net": ""},
+        "U2": { "model": "IS5200", "u": 2, "u_depth": 11, "management_net": "", "provisioning_net": "",  "heatmap": "", "ipoib_net": "", "ib_net": ""},
+          "U13": { "model": "IS5200", "u": 13, "u_depth": 1, "management_net": "ib0-is5200-a2-m1-m", "provisioning_net": "",  "heatmap": "", "ipoib_net": "", "ib_net": ""}, //Controller 1
+          "U14": { "model": "IS5200", "u": 14, "u_depth": 1, "management_net": "ib0-is5200-a2-m2-m", "provisioning_net": "",  "heatmap": "", "ipoib_net": "", "ib_net": ""}, //Controller 2
+        "U15": { "model": "BLANK", "u": 15, "u_depth": 2, "management_net": "", "provisioning_net": "",  "heatmap": "", "ipoib_net": "", "ib_net": ""},
+        "U17": { "model": "SX6036", "u": 17, "u_depth": 1, "management_net": "ib-sx6036-a2-001-m", "provisioning_net": "",  "heatmap": "", "ipoib_net": "", "ib_net": ""},
+        "U18": { "model": "SX6036", "u": 18, "u_depth": 1, "management_net": "ib-sx6036-a2-002-m", "provisioning_net": "",  "heatmap": "", "ipoib_net": "", "ib_net": ""},
+        "U19": { "model": "SX6036", "u": 19, "u_depth": 1, "management_net": "ib-sx6036-a2-003-m", "provisioning_net": "",  "heatmap": "", "ipoib_net": "", "ib_net": ""},
+        "U20": { "model": "BLANK", "u": 20, "u_depth": 9, "management_net": "", "provisioning_net": "",  "heatmap": "", "ipoib_net": "", "ib_net": ""},
+        "U29": { "model": "DX360_M3_GPU", "u": 29, "u_depth": 2, "management_net": "compute-cs-001-m", "provisioning_net": "compute-cs-001-p",  "heatmap": "compute-cs-001", "ipoib_net": "compute-cs-001-ib", "ib_net": "compute-cs-001-ib"},
+        "U31": { "model": "X3850_X5", "u": 31, "u_depth": 4, "management_net": "compute-chem-001-m", "provisioning_net": "compute-chem-001-p",  "heatmap": "compute-chem-001", "ipoib_net": "compute-chem-001-ib", "ib_net": "compute-chem-001-ib"},
+        "U35": { "model": "SM_1U", "u": 35, "u_depth": 1, "management_net": "compute-fmhs-001-m", "provisioning_net": "compute-fmhs-001-p",  "heatmap": "compute-fmhs-001", "ipoib_net": "compute-fmhs-001-ib", "ib_net": "compute-fmhs-001-ib"},
+        "U36": { "model": "BLANK", "u": 36, "u_depth": 4, "management_net": "", "provisioning_net": "",  "heatmap": "", "ipoib_net": "", "ib_net": ""},
+        "U40": { "model": "EX3300_24T", "u": 40, "u_depth": 1, "management_net": "exmgt-c2-u40-m", "provisioning_net": "",  "heatmap": "", "ipoib_net": "", "ib_net": ""},
+        "U41": { "model": "G8124", "u": 41, "u_depth": 1, "management_net": "bnt-c2-003-m", "provisioning_net": "",  "heatmap": "", "ipoib_net": "", "ib_net": ""},
+        "U42": { "model": "G8124", "u": 42, "u_depth": 1, "management_net": "bnt-c2-004-m", "provisioning_net": "",  "heatmap": "", "ipoib_net": "", "ib_net": ""}
+      }
+    },
+    "G18_A": {
+      "IBM_ID": "C2/A",
+      "U": 1,
+      "nodes": {
+        "U1": { "model": "pdu", "u": 1, "u_depth": 1, "management_net": "pdu-c2-a-u1", "provisioning_net": "",  "heatmap": "", "ipoib_net": "", "ib_net": ""}
+      }
+    },
+    "G18_B": {
+      "IBM_ID": "C2/B",
+      "U": 1,
+      "nodes": {
+        "U1": { "model": "pdu", "u": 1, "u_depth": 1, "management_net": "pdu-c2-b-u1", "provisioning_net": "",  "heatmap": "", "ipoib_net": "", "ib_net": ""}
+      }
+    },
+    "G18_C": {
+      "IBM_ID": "C2/C",
+      "U": 1,
+      "nodes": {
+        "U1": { "model": "pdu", "u": 1, "u_depth": 1, "management_net": "pdu-c2-c-u1", "provisioning_net": "",  "heatmap": "", "ipoib_net": "", "ib_net": ""}
+      }
+    },
+    "G18_D": {
+      "IBM_ID": "C2/D",
+      "U": 1,
+      "nodes": {
+        "U1": { "model": "pdu", "u": 1, "u_depth": 1, "management_net": "pdu-c2-d-u1", "provisioning_net": "",  "heatmap": "", "ipoib_net": "", "ib_net": ""}
+      }
+    },
+    "H18": {
+      "IBM_ID": "C1/C",
+      "U": 43,
+      "nodes": {
+        "U1": { "model": "BLANK", "u": 1, "u_depth": 1, "management_net": "", "provisioning_net": "",  "heatmap": "", "ipoib_net": "", "ib_net": ""},
+        "U2": { "model": "DX360_M4", "u": 2, "u_depth": 1, "management_net": "compute-b1-035-m", "provisioning_net": "compute-b1-035-p",  "heatmap": "compute-b1-035", "ipoib_net": "compute-b1-035-ib", "ib_net": "compute-b1-035-ib"},
+        "U3": { "model": "DX360_M4", "u": 3, "u_depth": 1, "management_net": "compute-b1-036-m", "provisioning_net": "compute-b1-036-p",  "heatmap": "compute-b1-036", "ipoib_net": "compute-b1-036-ib", "ib_net": "compute-b1-036-ib"},
+        "U4": { "model": "DX360_M4", "u": 4, "u_depth": 1, "management_net": "compute-b1-037-m", "provisioning_net": "compute-b1-037-p",  "heatmap": "compute-b1-037", "ipoib_net": "compute-b1-037-ib", "ib_net": "compute-b1-037-ib"},
+        "U5": { "model": "DX360_M4", "u": 5, "u_depth": 1, "management_net": "compute-b1-038-m", "provisioning_net": "compute-b1-038-p",  "heatmap": "compute-b1-038", "ipoib_net": "compute-b1-038-ib", "ib_net": "compute-b1-038-ib"},
+        "U6": { "model": "DX360_M4", "u": 6, "u_depth": 1, "management_net": "compute-b1-039-m", "provisioning_net": "compute-b1-039-p",  "heatmap": "compute-b1-039", "ipoib_net": "compute-b1-039-ib", "ib_net": "compute-b1-039-ib"},
+        "U7": { "model": "DX360_M4", "u": 7, "u_depth": 1, "management_net": "compute-b1-040-m", "provisioning_net": "compute-b1-040-p",  "heatmap": "compute-b1-040", "ipoib_net": "compute-b1-040-ib", "ib_net": "compute-b1-040-ib"},
+        "U8": { "model": "DX360_M4", "u": 8, "u_depth": 1, "management_net": "compute-b1-041-m", "provisioning_net": "compute-b1-041-p",  "heatmap": "compute-b1-041", "ipoib_net": "compute-b1-041-ib", "ib_net": "compute-b1-041-ib"},
+        "U9": { "model": "DX360_M4", "u": 9, "u_depth": 1, "management_net": "compute-b1-042-m", "provisioning_net": "compute-b1-042-p",  "heatmap": "compute-b1-042", "ipoib_net": "compute-b1-042-ib", "ib_net": "compute-b1-042-ib"},
+        "U10": { "model": "DX360_M4", "u": 10, "u_depth": 1, "management_net": "compute-b1-043-m", "provisioning_net": "compute-b1-043-p",  "heatmap": "compute-b1-043", "ipoib_net": "compute-b1-043-ib", "ib_net": "compute-b1-043-ib"},
+        "U11": { "model": "DX360_M4", "u": 11, "u_depth": 1, "management_net": "compute-b1-044-m", "provisioning_net": "compute-b1-044-p",  "heatmap": "compute-b1-044", "ipoib_net": "compute-b1-044-ib", "ib_net": "compute-b1-044-ib"},
+        "U12": { "model": "DX360_M4", "u": 12, "u_depth": 1, "management_net": "compute-b1-045-m", "provisioning_net": "compute-b1-045-p",  "heatmap": "compute-b1-045", "ipoib_net": "compute-b1-045-ib", "ib_net": "compute-b1-045-ib"},
+        "U13": { "model": "DX360_M4", "u": 13, "u_depth": 1, "management_net": "compute-b1-046-m", "provisioning_net": "compute-b1-046-p",  "heatmap": "compute-b1-046", "ipoib_net": "compute-b1-046-ib", "ib_net": "compute-b1-046-ib"},
+        "U14": { "model": "DX360_M4", "u": 14, "u_depth": 1, "management_net": "compute-b1-047-m", "provisioning_net": "compute-b1-047-p",  "heatmap": "compute-b1-047", "ipoib_net": "compute-b1-047-ib", "ib_net": "compute-b1-047-ib"},
+        "U15": { "model": "DX360_M4", "u": 15, "u_depth": 1, "management_net": "compute-b1-048-m", "provisioning_net": "compute-b1-048-p",  "heatmap": "compute-b1-048", "ipoib_net": "compute-b1-048-ib", "ib_net": "compute-b1-048-ib"},
+        "U16": { "model": "DX360_M4", "u": 16, "u_depth": 1, "management_net": "compute-b1-049-m", "provisioning_net": "compute-b1-049-p",  "heatmap": "compute-b1-049", "ipoib_net": "compute-b1-049-ib", "ib_net": "compute-b1-049-ib"},
+        "U17": { "model": "DX360_M4", "u": 17, "u_depth": 1, "management_net": "compute-b1-050-m", "provisioning_net": "compute-b1-050-p",  "heatmap": "compute-b1-050", "ipoib_net": "compute-b1-050-ib", "ib_net": "compute-b1-050-ib"},
+        "U18": { "model": "DX360_M4", "u": 18, "u_depth": 1, "management_net": "compute-b1-051-m", "provisioning_net": "compute-b1-051-p",  "heatmap": "compute-b1-051", "ipoib_net": "compute-b1-051-ib", "ib_net": "compute-b1-051-ib"},
+        "U19": { "model": "DX360_M4", "u": 19, "u_depth": 1, "management_net": "compute-b1-052-m", "provisioning_net": "compute-b1-052-p",  "heatmap": "compute-b1-052", "ipoib_net": "compute-b1-052-ib", "ib_net": "compute-b1-052-ib"},
+        "U20": { "model": "DX360_M4", "u": 20, "u_depth": 1, "management_net": "compute-b1-053-m", "provisioning_net": "compute-b1-053-p",  "heatmap": "compute-b1-053", "ipoib_net": "compute-b1-053-ib", "ib_net": "compute-b1-053-ib"},
+        "U21": { "model": "DX360_M4", "u": 21, "u_depth": 1, "management_net": "compute-b1-054-m", "provisioning_net": "compute-b1-054-p",  "heatmap": "compute-b1-054", "ipoib_net": "compute-b1-054-ib", "ib_net": "compute-b1-054-ib"},
+        "U22": { "model": "DX360_M4", "u": 22, "u_depth": 1, "management_net": "compute-b1-055-m", "provisioning_net": "compute-b1-055-p",  "heatmap": "compute-b1-055", "ipoib_net": "compute-b1-055-ib", "ib_net": "compute-b1-055-ib"},
+        "U23": { "model": "DX360_M4", "u": 23, "u_depth": 1, "management_net": "compute-b1-056-m", "provisioning_net": "compute-b1-056-p",  "heatmap": "compute-b1-056", "ipoib_net": "compute-b1-056-ib", "ib_net": "compute-b1-056-ib"},
+        "U24": { "model": "DX360_M4", "u": 24, "u_depth": 1, "management_net": "compute-b1-057-m", "provisioning_net": "compute-b1-057-p",  "heatmap": "compute-b1-057", "ipoib_net": "compute-b1-057-ib", "ib_net": "compute-b1-057-ib"},
+        "U25": { "model": "DX360_M4", "u": 25, "u_depth": 1, "management_net": "compute-b1-058-m", "provisioning_net": "compute-b1-058-p",  "heatmap": "compute-b1-058", "ipoib_net": "compute-b1-058-ib", "ib_net": "compute-b1-058-ib"},
+        "U26": { "model": "DX360_M4", "u": 26, "u_depth": 1, "management_net": "compute-b1-059-m", "provisioning_net": "compute-b1-059-p",  "heatmap": "compute-b1-059", "ipoib_net": "compute-b1-059-ib", "ib_net": "compute-b1-059-ib"},
+        "U27": { "model": "DX360_M4", "u": 27, "u_depth": 1, "management_net": "compute-b1-060-m", "provisioning_net": "compute-b1-060-p",  "heatmap": "compute-b1-060", "ipoib_net": "compute-b1-060-ib", "ib_net": "compute-b1-060-ib"},
+        "U28": { "model": "DX360_M4", "u": 28, "u_depth": 1, "management_net": "compute-b1-061-m", "provisioning_net": "compute-b1-061-p",  "heatmap": "compute-b1-061", "ipoib_net": "compute-b1-061-ib", "ib_net": "compute-b1-061-ib"},
+        "U29": { "model": "DX360_M4", "u": 29, "u_depth": 1, "management_net": "compute-b1-062-m", "provisioning_net": "compute-b1-062-p",  "heatmap": "compute-b1-062", "ipoib_net": "compute-b1-062-ib", "ib_net": "compute-b1-062-ib"},
+        "U30": { "model": "DX360_M4", "u": 30, "u_depth": 1, "management_net": "compute-b1-063-m", "provisioning_net": "compute-b1-063-p",  "heatmap": "compute-b1-063", "ipoib_net": "compute-b1-063-ib", "ib_net": "compute-b1-063-ib"},
+        "U31": { "model": "DX360_M4", "u": 31, "u_depth": 1, "management_net": "compute-b1-064-m", "provisioning_net": "compute-b1-064-p",  "heatmap": "compute-b1-064", "ipoib_net": "compute-b1-064-ib", "ib_net": "compute-b1-064-ib"},
+        "U32": { "model": "DX360_M4", "u": 32, "u_depth": 1, "management_net": "compute-b1-065-m", "provisioning_net": "compute-b1-065-p",  "heatmap": "compute-b1-065", "ipoib_net": "compute-b1-065-ib", "ib_net": "compute-b1-065-ib"},
+        "U33": { "model": "DX360_M4", "u": 33, "u_depth": 1, "management_net": "compute-b1-066-m", "provisioning_net": "compute-b1-066-p",  "heatmap": "compute-b1-066", "ipoib_net": "compute-b1-066-ib", "ib_net": "compute-b1-066-ib"},
+        "U34": { "model": "DX360_M4", "u": 34, "u_depth": 1, "management_net": "compute-b1-067-m", "provisioning_net": "compute-b1-067-p",  "heatmap": "compute-b1-067", "ipoib_net": "compute-b1-067-ib", "ib_net": "compute-b1-067-ib"},
+        "U35": { "model": "DX360_M4", "u": 35, "u_depth": 1, "management_net": "compute-b1-068-m", "provisioning_net": "compute-b1-068-p",  "heatmap": "compute-b1-068", "ipoib_net": "compute-b1-068-ib", "ib_net": "compute-b1-068-ib"},
+        "U36": { "model": "DX360_M3_GPU", "u": 36, "u_depth": 2, "management_net": "compute-gpu-b1-005-m", "provisioning_net": "compute-gpu-b1-005-p",  "heatmap": "compute-gpu-b1-005", "ipoib_net": "compute-gpu-b1-005-ib", "ib_net": "compute-gpu-b1-005-ib"},
+        "U38": { "model": "DX360_M3_GPU", "u": 38, "u_depth": 2, "management_net": "compute-gpu-b1-006-m", "provisioning_net": "compute-gpu-b1-006-p",  "heatmap": "compute-gpu-b1-006", "ipoib_net": "compute-gpu-b1-006-ib", "ib_net": "compute-gpu-b1-006-ib"},
+        "U40": { "model": "DX360_M3_GPU", "u": 40, "u_depth": 2, "management_net": "compute-gpu-b1-007-m", "provisioning_net": "compute-gpu-b1-007-p",  "heatmap": "compute-gpu-b1-007", "ipoib_net": "compute-gpu-b1-007-ib", "ib_net": "compute-gpu-b1-007-ib"},
+        "U42": { "model": "DX360_M3_GPU", "u": 42, "u_depth": 2, "management_net": "compute-gpu-b1-008-m", "provisioning_net": "compute-gpu-b1-008-p",  "heatmap": "compute-gpu-b1-008", "ipoib_net": "compute-gpu-b1-008-ib", "ib_net": "compute-gpu-b1-008-ib"}
+      }
+    },
+    "H18_D": {
+      "IBM_ID": "C1/D",
+      "U": 8,
+      "nodes": {
+        "U1": { "model": "pdu", "u": 1, "u_depth": 1, "management_net": "pdu-b1-d-u1", "provisioning_net": "",  "heatmap": "", "ipoib_net": "", "ib_net": ""},
+        "U2": { "model": "BLANK", "u": 2, "u_depth": 1, "management_net": "", "provisioning_net": "",  "heatmap": "", "ipoib_net": "", "ib_net": ""},
+        "U3": { "model": "pdu", "u": 3, "u_depth": 1, "management_net": "pdu-b1-d-u3", "provisioning_net": "",  "heatmap": "", "ipoib_net": "", "ib_net": ""},
+        "U4": { "model": "BLANK", "u": 4, "u_depth": 1, "management_net": "", "provisioning_net": "",  "heatmap": "", "ipoib_net": "", "ib_net": ""},
+        "U5": { "model": "BLANK", "u": 5, "u_depth": 1, "management_net": "", "provisioning_net": "",  "heatmap": "", "ipoib_net": "", "ib_net": ""},
+        "U6": { "model": "switch", "u": 6, "u_depth": 1, "management_net": "exmgmt-b1-d6-m", "provisioning_net": "",  "heatmap": "", "ipoib_net": "", "ib_net": ""},
+        "U7": { "model": "BLANK", "u": 7, "u_depth": 1, "management_net": "", "provisioning_net": "",  "heatmap": "", "ipoib_net": "", "ib_net": ""},
+        "U8": { "model": "BLANK", "u": 8, "u_depth": 1, "management_net": "", "provisioning_net": "",  "heatmap": "", "ipoib_net": "", "ib_net": ""}
+      }
+    },
+    "I18": {
+      "IBM_ID": "C1/A",
+      "U": 43,
+      "nodes": {
+        "U1": { "model": "DX360_M4", "u": 1, "u_depth": 1, "management_net": "compute-b1-001-m", "provisioning_net": "compute-b1-001-p",  "heatmap": "compute-b1-001", "ipoib_net": "compute-b1-001-ib", "ib_net": "compute-b1-001-ib"},
+        "U2": { "model": "DX360_M4", "u": 2, "u_depth": 1, "management_net": "compute-b1-002-m", "provisioning_net": "compute-b1-002-p",  "heatmap": "compute-b1-002", "ipoib_net": "compute-b1-002-ib", "ib_net": "compute-b1-002-ib"},
+        "U3": { "model": "DX360_M4", "u": 3, "u_depth": 1, "management_net": "compute-b1-003-m", "provisioning_net": "compute-b1-003-p",  "heatmap": "compute-b1-003", "ipoib_net": "compute-b1-003-ib", "ib_net": "compute-b1-003-ib"},
+        "U4": { "model": "DX360_M4", "u": 4, "u_depth": 1, "management_net": "compute-b1-004-m", "provisioning_net": "compute-b1-004-p",  "heatmap": "compute-b1-004", "ipoib_net": "compute-b1-004-ib", "ib_net": "compute-b1-004-ib"},
+        "U5": { "model": "DX360_M4", "u": 5, "u_depth": 1, "management_net": "compute-b1-005-m", "provisioning_net": "compute-b1-005-p",  "heatmap": "compute-b1-005", "ipoib_net": "compute-b1-005-ib", "ib_net": "compute-b1-005-ib"},
+        "U6": { "model": "DX360_M4", "u": 6, "u_depth": 1, "management_net": "compute-b1-006-m", "provisioning_net": "compute-b1-006-p",  "heatmap": "compute-b1-006", "ipoib_net": "compute-b1-006-ib", "ib_net": "compute-b1-006-ib"},
+        "U7": { "model": "DX360_M4", "u": 7, "u_depth": 1, "management_net": "compute-b1-007-m", "provisioning_net": "compute-b1-007-p",  "heatmap": "compute-b1-007", "ipoib_net": "compute-b1-007-ib", "ib_net": "compute-b1-007-ib"},
+        "U8": { "model": "DX360_M4", "u": 8, "u_depth": 1, "management_net": "compute-b1-008-m", "provisioning_net": "compute-b1-008-p",  "heatmap": "compute-b1-008", "ipoib_net": "compute-b1-008-ib", "ib_net": "compute-b1-008-ib"},
+        "U9": { "model": "DX360_M4", "u": 9, "u_depth": 1, "management_net": "compute-b1-009-m", "provisioning_net": "compute-b1-009-p",  "heatmap": "compute-b1-009", "ipoib_net": "compute-b1-009-ib", "ib_net": "compute-b1-009-ib"},
+        "U10": { "model": "DX360_M4", "u": 10, "u_depth": 1, "management_net": "compute-b1-010-m", "provisioning_net": "compute-b1-010-p",  "heatmap": "compute-b1-010", "ipoib_net": "compute-b1-010-ib", "ib_net": "compute-b1-010-ib"},
+        "U11": { "model": "DX360_M4", "u": 11, "u_depth": 1, "management_net": "compute-b1-011-m", "provisioning_net": "compute-b1-011-p",  "heatmap": "compute-b1-011", "ipoib_net": "compute-b1-011-ib", "ib_net": "compute-b1-011-ib"},
+        "U12": { "model": "DX360_M4", "u": 12, "u_depth": 1, "management_net": "compute-b1-012-m", "provisioning_net": "compute-b1-012-p",  "heatmap": "compute-b1-012", "ipoib_net": "compute-b1-012-ib", "ib_net": "compute-b1-012-ib"},
+        "U13": { "model": "DX360_M4", "u": 13, "u_depth": 1, "management_net": "compute-b1-013-m", "provisioning_net": "compute-b1-013-p",  "heatmap": "compute-b1-013", "ipoib_net": "compute-b1-013-ib", "ib_net": "compute-b1-013-ib"},
+        "U14": { "model": "DX360_M4", "u": 14, "u_depth": 1, "management_net": "compute-b1-014-m", "provisioning_net": "compute-b1-014-p",  "heatmap": "compute-b1-014", "ipoib_net": "compute-b1-014-ib", "ib_net": "compute-b1-014-ib"},
+        "U15": { "model": "DX360_M4", "u": 15, "u_depth": 1, "management_net": "compute-b1-015-m", "provisioning_net": "compute-b1-015-p",  "heatmap": "compute-b1-015", "ipoib_net": "compute-b1-015-ib", "ib_net": "compute-b1-015-ib"},
+        "U16": { "model": "DX360_M4", "u": 16, "u_depth": 1, "management_net": "compute-b1-016-m", "provisioning_net": "compute-b1-016-p",  "heatmap": "compute-b1-016", "ipoib_net": "compute-b1-016-ib", "ib_net": "compute-b1-016-ib"},
+        "U17": { "model": "DX360_M4", "u": 17, "u_depth": 1, "management_net": "compute-b1-017-m", "provisioning_net": "compute-b1-017-p",  "heatmap": "compute-b1-017", "ipoib_net": "compute-b1-017-ib", "ib_net": "compute-b1-017-ib"},
+        "U18": { "model": "DX360_M4", "u": 18, "u_depth": 1, "management_net": "compute-b1-018-m", "provisioning_net": "compute-b1-018-p",  "heatmap": "compute-b1-018", "ipoib_net": "compute-b1-018-ib", "ib_net": "compute-b1-018-ib"},
+        "U19": { "model": "DX360_M4", "u": 19, "u_depth": 1, "management_net": "compute-b1-019-m", "provisioning_net": "compute-b1-019-p",  "heatmap": "compute-b1-019", "ipoib_net": "compute-b1-019-ib", "ib_net": "compute-b1-019-ib"},
+        "U20": { "model": "DX360_M4", "u": 20, "u_depth": 1, "management_net": "compute-b1-020-m", "provisioning_net": "compute-b1-020-p",  "heatmap": "compute-b1-020", "ipoib_net": "compute-b1-020-ib", "ib_net": "compute-b1-020-ib"},
+        "U21": { "model": "DX360_M4", "u": 21, "u_depth": 1, "management_net": "compute-b1-021-m", "provisioning_net": "compute-b1-021-p",  "heatmap": "compute-b1-021", "ipoib_net": "compute-b1-021-ib", "ib_net": "compute-b1-021-ib"},
+        "U22": { "model": "DX360_M4", "u": 22, "u_depth": 1, "management_net": "compute-b1-022-m", "provisioning_net": "compute-b1-022-p",  "heatmap": "compute-b1-022", "ipoib_net": "compute-b1-022-ib", "ib_net": "compute-b1-022-ib"},
+        "U23": { "model": "DX360_M4", "u": 23, "u_depth": 1, "management_net": "compute-b1-023-m", "provisioning_net": "compute-b1-023-p",  "heatmap": "compute-b1-023", "ipoib_net": "compute-b1-023-ib", "ib_net": "compute-b1-023-ib"},
+        "U24": { "model": "DX360_M4", "u": 24, "u_depth": 1, "management_net": "compute-b1-024-m", "provisioning_net": "compute-b1-024-p",  "heatmap": "compute-b1-024", "ipoib_net": "compute-b1-024-ib", "ib_net": "compute-b1-024-ib"},
+        "U25": { "model": "DX360_M4", "u": 25, "u_depth": 1, "management_net": "compute-b1-025-m", "provisioning_net": "compute-b1-025-p",  "heatmap": "compute-b1-025", "ipoib_net": "compute-b1-025-ib", "ib_net": "compute-b1-025-ib"},
+        "U26": { "model": "DX360_M4", "u": 26, "u_depth": 1, "management_net": "compute-b1-026-m", "provisioning_net": "compute-b1-026-p",  "heatmap": "compute-b1-026", "ipoib_net": "compute-b1-026-ib", "ib_net": "compute-b1-026-ib"},
+        "U27": { "model": "DX360_M4", "u": 27, "u_depth": 1, "management_net": "compute-b1-027-m", "provisioning_net": "compute-b1-027-p",  "heatmap": "compute-b1-027", "ipoib_net": "compute-b1-027-ib", "ib_net": "compute-b1-027-ib"},
+        "U28": { "model": "DX360_M4", "u": 28, "u_depth": 1, "management_net": "compute-b1-028-m", "provisioning_net": "compute-b1-028-p",  "heatmap": "compute-b1-028", "ipoib_net": "compute-b1-028-ib", "ib_net": "compute-b1-028-ib"},
+        "U29": { "model": "DX360_M4", "u": 29, "u_depth": 1, "management_net": "compute-b1-029-m", "provisioning_net": "compute-b1-029-p",  "heatmap": "compute-b1-029", "ipoib_net": "compute-b1-029-ib", "ib_net": "compute-b1-029-ib"},
+        "U30": { "model": "DX360_M4", "u": 30, "u_depth": 1, "management_net": "compute-b1-030-m", "provisioning_net": "compute-b1-030-p",  "heatmap": "compute-b1-030", "ipoib_net": "compute-b1-030-ib", "ib_net": "compute-b1-030-ib"},
+        "U31": { "model": "DX360_M4", "u": 31, "u_depth": 1, "management_net": "compute-b1-031-m", "provisioning_net": "compute-b1-031-p",  "heatmap": "compute-b1-031", "ipoib_net": "compute-b1-031-ib", "ib_net": "compute-b1-031-ib"},
+        "U32": { "model": "DX360_M4", "u": 32, "u_depth": 1, "management_net": "compute-b1-032-m", "provisioning_net": "compute-b1-032-p",  "heatmap": "compute-b1-032", "ipoib_net": "compute-b1-032-ib", "ib_net": "compute-b1-032-ib"},
+        "U33": { "model": "DX360_M4", "u": 33, "u_depth": 1, "management_net": "compute-b1-033-m", "provisioning_net": "compute-b1-033-p",  "heatmap": "compute-b1-033", "ipoib_net": "compute-b1-033-ib", "ib_net": "compute-b1-033-ib"},
+        "U34": { "model": "DX360_M4", "u": 34, "u_depth": 1, "management_net": "compute-b1-034-m", "provisioning_net": "compute-b1-034-p",  "heatmap": "compute-b1-034", "ipoib_net": "compute-b1-034-ib", "ib_net": "compute-b1-034-ib"},
+        "U35": { "model": "DX360_M3_GPU", "u": 35, "u_depth": 2, "management_net": "compute-gpu-b1-001-m", "provisioning_net": "compute-gpu-b1-001-p",  "heatmap": "compute-gpu-b1-001", "ipoib_net": "compute-gpu-b1-001-ib", "ib_net": "compute-gpu-b1-001-ib"},
+        "U37": { "model": "DX360_M3_GPU", "u": 37, "u_depth": 2, "management_net": "compute-gpu-b1-002-m", "provisioning_net": "compute-gpu-b1-002-p",  "heatmap": "compute-gpu-b1-002", "ipoib_net": "compute-gpu-b1-002-ib", "ib_net": "compute-gpu-b1-002-ib"},
+        "U39": { "model": "DX360_M3_GPU", "u": 39, "u_depth": 2, "management_net": "compute-gpu-b1-003-m", "provisioning_net": "compute-gpu-b1-003-p",  "heatmap": "compute-gpu-b1-003", "ipoib_net": "compute-gpu-b1-003-ib", "ib_net": "compute-gpu-b1-003-ib"},
+        "U41": { "model": "DX360_M3_GPU", "u": 41, "u_depth": 2, "management_net": "compute-gpu-b1-004-m", "provisioning_net": "compute-gpu-b1-004-p",  "heatmap": "compute-gpu-b1-004", "ipoib_net": "compute-gpu-b1-004-ib", "ib_net": "compute-gpu-b1-004-ib"},
+        "U43": { "model": "BLANK", "u": 43, "u_depth": 1, "management_net": "", "provisioning_net": "",  "heatmap": "", "ipoib_net": "", "ib_net": ""}
+      }
+    },
+    "I18_B": {
+      "IBM_ID": "C1/B",
+      "U": 8,
+      "nodes": {
+        "U1": { "model": "pdu", "u": 1, "u_depth": 1, "management_net": "pdu-b1-b-u1", "provisioning_net": "", "heatmap": "", "ipoib_net": "", "ib_net": ""},
+        "U2": { "model": "BLANK", "u": 2, "u_depth": 1, "management_net": "", "provisioning_net": "", "heatmap": "", "ipoib_net": "", "ib_net": ""},
+        "U3": { "model": "pdu", "u": 3, "u_depth": 1, "management_net": "pdu-b1-b-u3", "provisioning_net": "", "heatmap": "", "ipoib_net": "", "ib_net": ""},
+        "U4": { "model": "BLANK", "u": 4, "u_depth": 1, "management_net": "", "provisioning_net": "", "heatmap": "", "ipoib_net": "", "ib_net": ""},
+        "U5": { "model": "BLANK", "u": 5, "u_depth": 1, "management_net": "", "provisioning_net": "", "heatmap": "", "ipoib_net": "", "ib_net": ""},
+        "U6": { "model": "switch", "u": 6, "u_depth": 1, "management_net": "exmgmt-b1-b6-m", "provisioning_net": "", "heatmap": "", "ipoib_net": "", "ib_net": ""},
+        "U7": { "model": "BLANK", "u": 7, "u_depth": 1, "management_net": "", "provisioning_net": "", "heatmap": "", "ipoib_net": "", "ib_net": ""},
+        "U8": { "model": "BLANK", "u": 8, "u_depth": 1, "management_net": "", "provisioning_net": "", "heatmap": "", "ipoib_net": "", "ib_net": ""}
+      }
+    },
+    "K18": {
+      "IBM_ID": "",
+      "U": 0,
+      "nodes": {
+      }
+    },
+    "L18": {
+      "IBM_ID": "",
+      "U": 0,
+      "nodes": {
+      }
+    },
+    "O18": {
+      "IBM_ID": "",
+      "U": 48,
+      "nodes": {
+        "U1": { "model": "BLANK", "u": 1, "u_depth": 48, "management_net": "", "provisioning_net": "", "heatmap": "", "ipoib_net": "", "ib_net": ""}
+      }
+    }
+  }
+}

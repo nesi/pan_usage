@@ -1,0 +1,668 @@
+<html>
+<head>
+<title>CPU Usage</title>
+<meta name="robots" content="noindex,nofollow" />
+<meta name="description" content="Pan Cluster Management IPV4 Ping State" />
+
+<script> var ping_target='heatmap';
+         var state_file='/cgi-bin/noheader/heatmapjson.cgi';
+         var ignore_file='ignore.json';
+         var page_header='Pan Heatmap';
+</script>
+
+<script src="/rgraph/libraries/RGraph.common.core.js" ></script>
+<script src="/rgraph/jquery.min.js"></script>
+
+<style type="text/css">
+table.rack {
+  background-color: black;
+}
+table.rack td {
+  border-width: 1px;
+  border-style: solid;
+  border-color: orange;
+  padding: 0px;
+  padding: 0px;
+  background-color: white;
+  color: white;
+  font-family:sans-serif;
+  font-size:10pt;
+  height: 15px;
+  width: 15px;
+}
+table.rack td.empty {
+  border-width: 1px;
+  border-style: solid;
+  border-color: black;
+  padding: 0px;
+  padding: 0px;
+  background-color: black;
+  color: white;
+  font-family:sans-serif;
+  font-size:10pt;
+  height: 15px;
+  width: 15px;
+}
+table.rack th {
+  border-width: 1px;
+  border-style: solid;
+  border-color: white;
+  padding: 0px;
+  padding: 0px;
+  background-color: white;
+  color: black;
+  font-family:sans-serif;
+  font-size:10pt;
+  height: 15px;
+  width: 15px;
+}
+</style>
+
+<script>
+function set_cell(cell_id, new_state, title) {
+    var the_cell = document.getElementById(cell_id);
+    if(the_cell != null) {
+      if(new_state != null && new_state["loadcolor"] != null) {
+        the_cell.style.backgroundColor = new_state["loadcolor"];
+        the_cell.style.borderColor = 'black';
+        title += '\n\nCPUs: ' + new_state['cpus'] + '\nCPUs Used: ' + new_state['cpusused'] + '\n';
+      }
+      else {
+        switch(new_state) {
+          case 'no_u': //There isn't such a U in the rack
+            the_cell.style.backgroundColor = 'black';
+            the_cell.style.borderColor = 'black';
+            the_cell.title = cell_id ;
+            return;
+          case 'no_state': //we know there will not be a state record
+            the_cell.style.backgroundColor = 'grey';
+            the_cell.style.borderColor = 'white';
+            the_cell.title = cell_id ;
+            return;
+          case 'blank': //known filler in the rack
+            the_cell.style.backgroundColor = 'black';
+            the_cell.style.borderColor = 'white';
+            the_cell.title = cell_id ;
+            return;
+          case 'ok':
+            the_cell.style.backgroundColor = '#00FF00'; //green
+            the_cell.style.borderColor = 'white';
+            break;
+          case 'degraded':
+            the_cell.style.backgroundColor = 'orange';
+            the_cell.style.borderColor = 'white';
+            break;
+          case 'fault':
+            the_cell.style.backgroundColor = '#920000'; //red
+            the_cell.style.borderColor = '#FF0000';
+            break;
+          case 'unexpected': //didn't expect there to be data
+            the_cell.style.backgroundColor = '#0000FF'; //blue
+            the_cell.style.borderColor = 'orange';
+            break
+          default: //no data, but expected it
+            the_cell.style.backgroundColor = 'white';
+            the_cell.style.borderColor = 'orange';
+        }
+      }
+      the_cell.title = title + '\n' + cell_id ;
+    }
+  }
+  
+  var delay_state = 60000; //1 minutes
+        
+  function myAJAXCallback_state(data) {
+    var date_stamp = document.getElementById('date_stamp');
+    process_each_rack(data.state);
+    date_stamp.innerHTML = data.datetime.substring(0,19);
+    // Make another AJAX call after the delay (which is in milliseconds)
+    setTimeout(function () { RGraph.AJAX.getJSON(window.state_file + "?timestamp="+ Date.now(), myAJAXCallback_state); }, delay_state);
+  }
+  
+  function myAJAXCallback_ignore(data) {
+    for(var i=0; i < data.ignore.length; i++) {
+      document.getElementById(data.ignore[i]).style.backgroundColor = 'grey';
+      document.getElementById(data.ignore[i]).style.borderColor = 'black';
+    }
+    
+    // Make another AJAX call after the delay (which is in milliseconds)
+    setTimeout(function () { RGraph.AJAX.getJSON(window.ignore_file + "?timestamp="+ Date.now(), myAJAXCallback_ignore); }, delay_state);
+  }
+
+  function process_each_rack(state) {
+    for(var c in state) { 
+      set_cell(c, state[c], '')
+    }
+  }
+
+  function init() {
+  /**
+  * Initial AJAX calls
+  */
+    var header = document.getElementById('header');
+    
+    setTimeout(function () { RGraph.AJAX.getJSON(window.ignore_file + "?timestamp="+ Date.now(), myAJAXCallback_ignore); }, 0);
+    setTimeout(function () {RGraph.AJAX.getJSON(window.state_file + "?timestamp="+ Date.now(), myAJAXCallback_state);}, 0);
+    header.innerHTML = window.page_header;
+  }
+</script>
+
+</head>
+<body>
+<H1 id="header">XXXX State</H1>
+<table id='tdc' class='rack'>
+<tr><th colspan=21 align='right'>
+  <select id="view1">
+    <option value="cpusdeviation">CPU cores: discrepancy used vs requested</option>
+    <option value="cpusreq">CPU cores: requested usage</option>
+    <option value="cpusused" selected>CPU cores: actual usage</option>
+    <option value="memdeviation">Memory: discrepancy used vs requested</option>
+    <option value="memreq">Memory: requested usage</option>
+    <option value="memused">Memory: actual usage</option>
+  </select>
+</th></tr>
+<tr>
+<td colspan=21><table class='rack'>
+<tr><td>
+<td id='compute-a1-001' title='compute-a1-001'>&nbsp;</td>
+<td id='compute-a1-002' title='compute-a1-002'>&nbsp;</td>
+<td id='compute-a1-003' title='compute-a1-003'>&nbsp;</td>
+<td id='compute-a1-004' title='compute-a1-004'>&nbsp;</td>
+<td id='compute-a1-005' title='compute-a1-005'>&nbsp;</td>
+<td id='compute-a1-006' title='compute-a1-006'>&nbsp;</td>
+<td id='compute-a1-007' title='compute-a1-007'>&nbsp;</td>
+<td id='compute-a1-008' title='compute-a1-008'>&nbsp;</td>
+<td id='compute-a1-009' title='compute-a1-009'>&nbsp;</td>
+<td id='compute-a1-010' title='compute-a1-010'>&nbsp;</td>
+<td id='compute-a1-011' title='compute-a1-011'>&nbsp;</td>
+<td id='compute-a1-012' title='compute-a1-012'>&nbsp;</td>
+<td id='compute-a1-013' title='compute-a1-013'>&nbsp;</td>
+<td id='compute-a1-014' title='compute-a1-014'>&nbsp;</td>
+<td id='compute-a1-015' title='compute-a1-015'>&nbsp;</td>
+<td id='compute-a1-016' title='compute-a1-016'>&nbsp;</td>
+<td id='compute-a1-017' title='compute-a1-017'>&nbsp;</td>
+<td id='compute-a1-018' title='compute-a1-018'>&nbsp;</td>
+<td id='compute-a1-019' title='compute-a1-019'>&nbsp;</td>
+<td id='compute-a1-020' title='compute-a1-020'>&nbsp;</td>
+<td id='compute-a1-021' title='compute-a1-021'>&nbsp;</td>
+</tr>
+<tr>
+<td id='compute-a1-022' title='compute-a1-022'>&nbsp;</td>
+<td id='compute-a1-023' title='compute-a1-023'>&nbsp;</td>
+<td id='compute-a1-024' title='compute-a1-024'>&nbsp;</td>
+<td id='compute-a1-025' title='compute-a1-025'>&nbsp;</td>
+<td id='compute-a1-026' title='compute-a1-026'>&nbsp;</td>
+<td id='compute-a1-027' title='compute-a1-027'>&nbsp;</td>
+<td id='compute-a1-028' title='compute-a1-028'>&nbsp;</td>
+<td id='compute-a1-029' title='compute-a1-029'>&nbsp;</td>
+<td id='compute-a1-030' title='compute-a1-030'>&nbsp;</td>
+<td id='compute-a1-031' title='compute-a1-031'>&nbsp;</td>
+<td id='compute-a1-032' title='compute-a1-032'>&nbsp;</td>
+<td id='compute-a1-033' title='compute-a1-033'>&nbsp;</td>
+<td id='compute-a1-034' title='compute-a1-034'>&nbsp;</td>
+<td id='compute-a1-035' title='compute-a1-035'>&nbsp;</td>
+<td id='compute-a1-036' title='compute-a1-036'>&nbsp;</td>
+<td id='compute-a1-037' title='compute-a1-037'>&nbsp;</td>
+<td id='compute-a1-038' title='compute-a1-038'>&nbsp;</td>
+<td id='compute-a1-039' title='compute-a1-039'>&nbsp;</td>
+<td id='compute-a1-040' title='compute-a1-040'>&nbsp;</td>
+<td id='compute-a1-041' title='compute-a1-041'>&nbsp;</td>
+<td id='compute-a1-042' title='compute-a1-042'>&nbsp;</td>
+</tr>
+<tr>
+<td id='compute-a1-043' title='compute-a1-043'>&nbsp;</td>
+<td id='compute-a1-044' title='compute-a1-044'>&nbsp;</td>
+<td id='compute-a1-045' title='compute-a1-045'>&nbsp;</td>
+<td id='compute-a1-046' title='compute-a1-046'>&nbsp;</td>
+<td id='compute-a1-047' title='compute-a1-047'>&nbsp;</td>
+<td id='compute-a1-048' title='compute-a1-048'>&nbsp;</td>
+<td id='compute-a1-049' title='compute-a1-049'>&nbsp;</td>
+<td id='compute-a1-050' title='compute-a1-050'>&nbsp;</td>
+<td id='compute-a1-051' title='compute-a1-051'>&nbsp;</td>
+<td id='compute-a1-052' title='compute-a1-052'>&nbsp;</td>
+<td id='compute-a1-053' title='compute-a1-053'>&nbsp;</td>
+<td id='compute-a1-054' title='compute-a1-054'>&nbsp;</td>
+<td id='compute-a1-055' title='compute-a1-055'>&nbsp;</td>
+<td id='compute-a1-056' title='compute-a1-056'>&nbsp;</td>
+<td id='compute-gpu-a1-001' title='compute-gpu-a1-001'>&nbsp;</td>
+<td id='compute-gpu-a1-002' title='compute-gpu-a1-002'>&nbsp;</td>
+<td id='compute-gpu-a1-003' title='compute-gpu-a1-003'>&nbsp;</td>
+<td id='compute-gpu-a1-004' title='compute-gpu-a1-004'>&nbsp;</td>
+<td id='compute-a1-057' title='compute-a1-057'>&nbsp;</td>
+<td id='compute-a1-058' title='compute-a1-058'>&nbsp;</td>
+<td id='compute-a1-059' title='compute-a1-059'>&nbsp;</td>
+</tr>
+<tr>
+<td id='compute-a1-060' title='compute-a1-060'>&nbsp;</td>
+<td id='compute-a1-061' title='compute-a1-061'>&nbsp;</td>
+<td id='compute-a1-062' title='compute-a1-062'>&nbsp;</td>
+<td id='compute-a1-063' title='compute-a1-063'>&nbsp;</td>
+<td id='compute-a1-064' title='compute-a1-064'>&nbsp;</td>
+<td id='compute-a1-065' title='compute-a1-065'>&nbsp;</td>
+<td id='compute-a1-066' title='compute-a1-066'>&nbsp;</td>
+<td id='compute-a1-067' title='compute-a1-067'>&nbsp;</td>
+<td id='compute-a1-068' title='compute-a1-068'>&nbsp;</td>
+<td id='compute-a1-069' title='compute-a1-069'>&nbsp;</td>
+<td id='compute-a1-070' title='compute-a1-070'>&nbsp;</td>
+<td id='compute-a1-071' title='compute-a1-071'>&nbsp;</td>
+<td id='compute-a1-072' title='compute-a1-072'>&nbsp;</td>
+<td id='compute-a1-073' title='compute-a1-073'>&nbsp;</td>
+<td id='compute-a1-074' title='compute-a1-074'>&nbsp;</td>
+<td id='compute-a1-075' title='compute-a1-075'>&nbsp;</td>
+<td id='compute-a1-076' title='compute-a1-076'>&nbsp;</td>
+<td class=empty>&nbsp;</td>
+<td class=empty>&nbsp;</td>
+<td class=empty>&nbsp;</td>
+<td class=empty>&nbsp;</td>
+</td></tr>
+</table></td>
+<td colspan=21><table class='rack'>
+<tr><td>
+<td id='compute-b1-001' title='compute-b1-001'>&nbsp;</td>
+<td id='compute-b1-002' title='compute-b1-002'>&nbsp;</td>
+<td id='compute-b1-003' title='compute-b1-003'>&nbsp;</td>
+<td id='compute-b1-004' title='compute-b1-004'>&nbsp;</td>
+<td id='compute-b1-005' title='compute-b1-005'>&nbsp;</td>
+<td id='compute-b1-006' title='compute-b1-006'>&nbsp;</td>
+<td id='compute-b1-007' title='compute-b1-007'>&nbsp;</td>
+<td id='compute-b1-008' title='compute-b1-008'>&nbsp;</td>
+<td id='compute-b1-009' title='compute-b1-009'>&nbsp;</td>
+<td id='compute-b1-010' title='compute-b1-010'>&nbsp;</td>
+<td id='compute-b1-011' title='compute-b1-011'>&nbsp;</td>
+<td id='compute-b1-012' title='compute-b1-012'>&nbsp;</td>
+<td id='compute-b1-013' title='compute-b1-013'>&nbsp;</td>
+<td id='compute-b1-014' title='compute-b1-014'>&nbsp;</td>
+<td id='compute-b1-015' title='compute-b1-015'>&nbsp;</td>
+<td id='compute-b1-016' title='compute-b1-016'>&nbsp;</td>
+<td id='compute-b1-017' title='compute-b1-017'>&nbsp;</td>
+<td id='compute-b1-018' title='compute-b1-018'>&nbsp;</td>
+<td id='compute-b1-019' title='compute-b1-019'>&nbsp;</td>
+<td id='compute-b1-020' title='compute-b1-020'>&nbsp;</td>
+<td id='compute-b1-021' title='compute-b1-021'>&nbsp;</td>
+</tr>
+<tr>
+<td id='compute-b1-022' title='compute-b1-022'>&nbsp;</td>
+<td id='compute-b1-023' title='compute-b1-023'>&nbsp;</td>
+<td id='compute-b1-024' title='compute-b1-024'>&nbsp;</td>
+<td id='compute-b1-025' title='compute-b1-025'>&nbsp;</td>
+<td id='compute-b1-026' title='compute-b1-026'>&nbsp;</td>
+<td id='compute-b1-027' title='compute-b1-027'>&nbsp;</td>
+<td id='compute-b1-028' title='compute-b1-028'>&nbsp;</td>
+<td id='compute-b1-029' title='compute-b1-029'>&nbsp;</td>
+<td id='compute-b1-030' title='compute-b1-030'>&nbsp;</td>
+<td id='compute-b1-031' title='compute-b1-031'>&nbsp;</td>
+<td id='compute-b1-032' title='compute-b1-032'>&nbsp;</td>
+<td id='compute-b1-033' title='compute-b1-033'>&nbsp;</td>
+<td id='compute-b1-034' title='compute-b1-034'>&nbsp;</td>
+<td id='compute-gpu-b1-001' title='compute-gpu-b1-001'>&nbsp;</td>
+<td id='compute-gpu-b1-002' title='compute-gpu-b1-002'>&nbsp;</td>
+<td id='compute-gpu-b1-003' title='compute-gpu-b1-003'>&nbsp;</td>
+<td id='compute-gpu-b1-004' title='compute-gpu-b1-004'>&nbsp;</td>
+<td id='compute-b1-035' title='compute-b1-035'>&nbsp;</td>
+<td id='compute-b1-036' title='compute-b1-036'>&nbsp;</td>
+<td id='compute-b1-037' title='compute-b1-037'>&nbsp;</td>
+<td id='compute-b1-038' title='compute-b1-038'>&nbsp;</td>
+</tr>
+<tr>
+<td id='compute-b1-039' title='compute-b1-039'>&nbsp;</td>
+<td id='compute-b1-040' title='compute-b1-040'>&nbsp;</td>
+<td id='compute-b1-041' title='compute-b1-041'>&nbsp;</td>
+<td id='compute-b1-042' title='compute-b1-042'>&nbsp;</td>
+<td id='compute-b1-043' title='compute-b1-043'>&nbsp;</td>
+<td id='compute-b1-044' title='compute-b1-044'>&nbsp;</td>
+<td id='compute-b1-045' title='compute-b1-045'>&nbsp;</td>
+<td id='compute-b1-046' title='compute-b1-046'>&nbsp;</td>
+<td id='compute-b1-047' title='compute-b1-047'>&nbsp;</td>
+<td id='compute-b1-048' title='compute-b1-048'>&nbsp;</td>
+<td id='compute-b1-049' title='compute-b1-049'>&nbsp;</td>
+<td id='compute-b1-050' title='compute-b1-050'>&nbsp;</td>
+<td id='compute-b1-051' title='compute-b1-051'>&nbsp;</td>
+<td id='compute-b1-052' title='compute-b1-052'>&nbsp;</td>
+<td id='compute-b1-053' title='compute-b1-053'>&nbsp;</td>
+<td id='compute-b1-054' title='compute-b1-054'>&nbsp;</td>
+<td id='compute-b1-055' title='compute-b1-055'>&nbsp;</td>
+<td id='compute-b1-056' title='compute-b1-056'>&nbsp;</td>
+<td id='compute-b1-057' title='compute-b1-057'>&nbsp;</td>
+<td id='compute-b1-058' title='compute-b1-058'>&nbsp;</td>
+<td id='compute-b1-059' title='compute-b1-059'>&nbsp;</td>
+</tr>
+<tr>
+<td id='compute-b1-060' title='compute-b1-060'>&nbsp;</td>
+<td id='compute-b1-061' title='compute-b1-061'>&nbsp;</td>
+<td id='compute-b1-062' title='compute-b1-062'>&nbsp;</td>
+<td id='compute-b1-063' title='compute-b1-063'>&nbsp;</td>
+<td id='compute-b1-064' title='compute-b1-064'>&nbsp;</td>
+<td id='compute-b1-065' title='compute-b1-065'>&nbsp;</td>
+<td id='compute-b1-066' title='compute-b1-066'>&nbsp;</td>
+<td id='compute-b1-067' title='compute-b1-067'>&nbsp;</td>
+<td id='compute-b1-068' title='compute-b1-068'>&nbsp;</td>
+<td id='compute-gpu-b1-005' title='compute-gpu-b1-005'>&nbsp;</td>
+<td id='compute-gpu-b1-006' title='compute-gpu-b1-006'>&nbsp;</td>
+<td id='compute-gpu-b1-007' title='compute-gpu-b1-007'>&nbsp;</td>
+<td id='compute-gpu-b1-008' title='compute-gpu-b1-008'>&nbsp;</td>
+<td class=empty>&nbsp;</td>
+<td class=empty>&nbsp;</td>
+<td class=empty>&nbsp;</td>
+<td class=empty>&nbsp;</td>
+<td class=empty>&nbsp;</td>
+<td class=empty>&nbsp;</td>
+<td class=empty>&nbsp;</td>
+<td class=empty>&nbsp;</td>
+</td></tr>
+</table></td>
+<td colspan=21><table class='rack'>
+<tr><td>
+<td id='compute-c1-001' title='compute-c1-001'>&nbsp;</td>
+<td id='compute-c1-002' title='compute-c1-002'>&nbsp;</td>
+<td id='compute-c1-003' title='compute-c1-003'>&nbsp;</td>
+<td id='compute-c1-004' title='compute-c1-004'>&nbsp;</td>
+<td id='compute-c1-005' title='compute-c1-005'>&nbsp;</td>
+<td id='compute-c1-006' title='compute-c1-006'>&nbsp;</td>
+<td id='compute-c1-007' title='compute-c1-007'>&nbsp;</td>
+<td id='compute-c1-008' title='compute-c1-008'>&nbsp;</td>
+<td id='compute-c1-009' title='compute-c1-009'>&nbsp;</td>
+<td id='compute-c1-010' title='compute-c1-010'>&nbsp;</td>
+<td id='compute-c1-011' title='compute-c1-011'>&nbsp;</td>
+<td id='compute-c1-012' title='compute-c1-012'>&nbsp;</td>
+<td id='compute-c1-013' title='compute-c1-013'>&nbsp;</td>
+<td id='compute-c1-014' title='compute-c1-014'>&nbsp;</td>
+<td id='compute-c1-015' title='compute-c1-015'>&nbsp;</td>
+<td id='compute-c1-016' title='compute-c1-016'>&nbsp;</td>
+<td id='compute-c1-017' title='compute-c1-017'>&nbsp;</td>
+<td id='compute-c1-018' title='compute-c1-018'>&nbsp;</td>
+<td id='compute-c1-019' title='compute-c1-019'>&nbsp;</td>
+<td id='compute-c1-020' title='compute-c1-020'>&nbsp;</td>
+<td id='compute-c1-021' title='compute-c1-021'>&nbsp;</td>
+</tr>
+<tr>
+<td id='compute-c1-022' title='compute-c1-022'>&nbsp;</td>
+<td id='compute-c1-023' title='compute-c1-023'>&nbsp;</td>
+<td id='compute-c1-024' title='compute-c1-024'>&nbsp;</td>
+<td id='compute-c1-025' title='compute-c1-025'>&nbsp;</td>
+<td id='compute-c1-026' title='compute-c1-026'>&nbsp;</td>
+<td id='compute-c1-027' title='compute-c1-027'>&nbsp;</td>
+<td id='compute-c1-028' title='compute-c1-028'>&nbsp;</td>
+<td id='compute-gpu-c1-001' title='compute-gpu-c1-001'>&nbsp;</td>
+<td id='compute-gpu-c1-002' title='compute-gpu-c1-002'>&nbsp;</td>
+<td id='compute-cs-002' title='compute-cs-002'>&nbsp;</td>
+<td id='compute-stats-002' title='compute-stats-002'>&nbsp;</td>
+<td id='compute-stats-003' title='compute-stats-003'>&nbsp;</td>
+<td id='compute-c1-059' title='compute-c1-059'>&nbsp;</td>
+<td id='compute-c1-060' title='compute-c1-060'>&nbsp;</td>
+<td id='compute-c1-029' title='compute-c1-029'>&nbsp;</td>
+<td id='compute-c1-030' title='compute-c1-030'>&nbsp;</td>
+<td id='compute-c1-031' title='compute-c1-031'>&nbsp;</td>
+<td id='compute-c1-032' title='compute-c1-032'>&nbsp;</td>
+<td id='compute-c1-033' title='compute-c1-033'>&nbsp;</td>
+<td id='compute-c1-034' title='compute-c1-034'>&nbsp;</td>
+<td id='compute-c1-035' title='compute-c1-035'>&nbsp;</td>
+</tr>
+<tr>
+<td id='compute-c1-036' title='compute-c1-036'>&nbsp;</td>
+<td id='compute-c1-037' title='compute-c1-037'>&nbsp;</td>
+<td id='compute-c1-038' title='compute-c1-038'>&nbsp;</td>
+<td id='compute-c1-039' title='compute-c1-039'>&nbsp;</td>
+<td id='compute-c1-040' title='compute-c1-040'>&nbsp;</td>
+<td id='compute-c1-041' title='compute-c1-041'>&nbsp;</td>
+<td id='compute-c1-042' title='compute-c1-042'>&nbsp;</td>
+<td id='compute-c1-043' title='compute-c1-043'>&nbsp;</td>
+<td id='compute-c1-044' title='compute-c1-044'>&nbsp;</td>
+<td id='compute-c1-045' title='compute-c1-045'>&nbsp;</td>
+<td id='compute-c1-046' title='compute-c1-046'>&nbsp;</td>
+<td id='compute-c1-047' title='compute-c1-047'>&nbsp;</td>
+<td id='compute-c1-048' title='compute-c1-048'>&nbsp;</td>
+<td id='compute-c1-049' title='compute-c1-049'>&nbsp;</td>
+<td id='compute-c1-050' title='compute-c1-050'>&nbsp;</td>
+<td id='compute-c1-051' title='compute-c1-051'>&nbsp;</td>
+<td id='compute-c1-052' title='compute-c1-052'>&nbsp;</td>
+<td id='compute-c1-053' title='compute-c1-053'>&nbsp;</td>
+<td id='compute-c1-054' title='compute-c1-054'>&nbsp;</td>
+<td id='compute-c1-055' title='compute-c1-055'>&nbsp;</td>
+<td id='compute-c1-056' title='compute-c1-056'>&nbsp;</td>
+</tr>
+<tr>
+<td id='compute-gpu-c1-003' title='compute-gpu-c1-003'>&nbsp;</td>
+<td id='compute-gpu-c1-004' title='compute-gpu-c1-004'>&nbsp;</td>
+<td id='compute-stats-004' title='compute-stats-004'>&nbsp;</td>
+<td id='compute-stats-005' title='compute-stats-005'>&nbsp;</td>
+<td id='compute-c1-057' title='compute-c1-057'>&nbsp;</td>
+<td id='compute-c1-058' title='compute-c1-058'>&nbsp;</td>
+<td id='compute-cs-003' title='compute-cs-003'>&nbsp;</td>
+<td id='compute-physics-001' title='compute-physics-001'>&nbsp;</td>
+<td class=empty>&nbsp;</td>
+<td class=empty>&nbsp;</td>
+<td class=empty>&nbsp;</td>
+<td class=empty>&nbsp;</td>
+<td class=empty>&nbsp;</td>
+<td class=empty>&nbsp;</td>
+<td class=empty>&nbsp;</td>
+<td class=empty>&nbsp;</td>
+<td class=empty>&nbsp;</td>
+<td class=empty>&nbsp;</td>
+<td class=empty>&nbsp;</td>
+<td class=empty>&nbsp;</td>
+<td class=empty>&nbsp;</td>
+</td></tr>
+</table></td>
+<td colspan=21><table class='rack'>
+<tr><td>
+<td id='compute-d1-001' title='compute-d1-001'>&nbsp;</td>
+<td id='compute-d1-002' title='compute-d1-002'>&nbsp;</td>
+<td id='compute-d1-003' title='compute-d1-003'>&nbsp;</td>
+<td id='compute-d1-004' title='compute-d1-004'>&nbsp;</td>
+<td id='compute-d1-005' title='compute-d1-005'>&nbsp;</td>
+<td id='compute-d1-006' title='compute-d1-006'>&nbsp;</td>
+<td id='compute-d1-007' title='compute-d1-007'>&nbsp;</td>
+<td id='compute-d1-008' title='compute-d1-008'>&nbsp;</td>
+<td id='compute-d1-009' title='compute-d1-009'>&nbsp;</td>
+<td id='compute-d1-010' title='compute-d1-010'>&nbsp;</td>
+<td id='compute-d1-011' title='compute-d1-011'>&nbsp;</td>
+<td id='compute-d1-012' title='compute-d1-012'>&nbsp;</td>
+<td id='compute-d1-013' title='compute-d1-013'>&nbsp;</td>
+<td id='compute-d1-014' title='compute-d1-014'>&nbsp;</td>
+<td id='compute-d1-015' title='compute-d1-015'>&nbsp;</td>
+<td id='compute-d1-016' title='compute-d1-016'>&nbsp;</td>
+<td id='compute-d1-017' title='compute-d1-017'>&nbsp;</td>
+<td id='compute-d1-018' title='compute-d1-018'>&nbsp;</td>
+<td id='compute-d1-019' title='compute-d1-019'>&nbsp;</td>
+<td id='compute-d1-020' title='compute-d1-020'>&nbsp;</td>
+<td id='compute-d1-021' title='compute-d1-021'>&nbsp;</td>
+</tr>
+<tr>
+<td id='compute-d1-022' title='compute-d1-022'>&nbsp;</td>
+<td id='compute-d1-023' title='compute-d1-023'>&nbsp;</td>
+<td id='compute-d1-024' title='compute-d1-024'>&nbsp;</td>
+<td id='compute-d1-025' title='compute-d1-025'>&nbsp;</td>
+<td id='compute-d1-026' title='compute-d1-026'>&nbsp;</td>
+<td id='compute-d1-027' title='compute-d1-027'>&nbsp;</td>
+<td id='compute-d1-028' title='compute-d1-028'>&nbsp;</td>
+<td id='compute-d1-029' title='compute-d1-029'>&nbsp;</td>
+<td id='compute-d1-030' title='compute-d1-030'>&nbsp;</td>
+<td id='compute-d1-031' title='compute-d1-031'>&nbsp;</td>
+<td id='compute-d1-032' title='compute-d1-032'>&nbsp;</td>
+<td id='compute-d1-033' title='compute-d1-033'>&nbsp;</td>
+<td id='compute-d1-034' title='compute-d1-034'>&nbsp;</td>
+<td id='compute-d1-035' title='compute-d1-035'>&nbsp;</td>
+<td id='compute-d1-036' title='compute-d1-036'>&nbsp;</td>
+<td id='compute-gpu-d1-001' title='compute-gpu-d1-001'>&nbsp;</td>
+<td id='compute-gpu-d1-002' title='compute-gpu-d1-002'>&nbsp;</td>
+<td id='compute-phi-d1-001' title='compute-phi-d1-001'>&nbsp;</td>
+<td id='compute-d1-037' title='compute-d1-037'>&nbsp;</td>
+<td id='compute-d1-038' title='compute-d1-038'>&nbsp;</td>
+<td id='compute-d1-039' title='compute-d1-039'>&nbsp;</td>
+</tr>
+<tr>
+<td id='compute-d1-040' title='compute-d1-040'>&nbsp;</td>
+<td id='compute-d1-041' title='compute-d1-041'>&nbsp;</td>
+<td id='compute-d1-042' title='compute-d1-042'>&nbsp;</td>
+<td id='compute-d1-043' title='compute-d1-043'>&nbsp;</td>
+<td id='compute-d1-044' title='compute-d1-044'>&nbsp;</td>
+<td id='compute-d1-045' title='compute-d1-045'>&nbsp;</td>
+<td id='compute-d1-046' title='compute-d1-046'>&nbsp;</td>
+<td id='compute-d1-047' title='compute-d1-047'>&nbsp;</td>
+<td id='compute-d1-048' title='compute-d1-048'>&nbsp;</td>
+<td id='compute-d1-049' title='compute-d1-049'>&nbsp;</td>
+<td id='compute-d1-050' title='compute-d1-050'>&nbsp;</td>
+<td id='compute-d1-051' title='compute-d1-051'>&nbsp;</td>
+<td id='compute-d1-052' title='compute-d1-052'>&nbsp;</td>
+<td id='compute-d1-053' title='compute-d1-053'>&nbsp;</td>
+<td id='compute-d1-054' title='compute-d1-054'>&nbsp;</td>
+<td id='compute-d1-055' title='compute-d1-055'>&nbsp;</td>
+<td id='compute-d1-056' title='compute-d1-056'>&nbsp;</td>
+<td id='compute-d1-057' title='compute-d1-057'>&nbsp;</td>
+<td id='compute-d1-058' title='compute-d1-058'>&nbsp;</td>
+<td id='compute-d1-059' title='compute-d1-059'>&nbsp;</td>
+<td id='compute-d1-060' title='compute-d1-060'>&nbsp;</td>
+</tr>
+<tr>
+<td id='compute-d1-061' title='compute-d1-061'>&nbsp;</td>
+<td id='compute-d1-062' title='compute-d1-062'>&nbsp;</td>
+<td id='compute-d1-063' title='compute-d1-063'>&nbsp;</td>
+<td id='compute-d1-064' title='compute-d1-064'>&nbsp;</td>
+<td id='compute-d1-065' title='compute-d1-065'>&nbsp;</td>
+<td id='compute-d1-066' title='compute-d1-066'>&nbsp;</td>
+<td id='compute-d1-067' title='compute-d1-067'>&nbsp;</td>
+<td id='compute-d1-068' title='compute-d1-068'>&nbsp;</td>
+<td id='compute-d1-069' title='compute-d1-069'>&nbsp;</td>
+<td id='compute-d1-070' title='compute-d1-070'>&nbsp;</td>
+<td id='compute-gpu-d1-003' title='compute-gpu-d1-003'>&nbsp;</td>
+<td id='compute-gpu-d1-004' title='compute-gpu-d1-004'>&nbsp;</td>
+<td id='compute-gpu-d1-005' title='compute-gpu-d1-005'>&nbsp;</td>
+<td id='compute-phi-d1-002' title='compute-phi-d1-002'>&nbsp;</td>
+<td class=empty>&nbsp;</td>
+<td class=empty>&nbsp;</td>
+<td class=empty>&nbsp;</td>
+<td class=empty>&nbsp;</td>
+<td class=empty>&nbsp;</td>
+<td class=empty>&nbsp;</td>
+<td class=empty>&nbsp;</td>
+</td></tr>
+</table></td>
+<td colspan=21><table class='rack'>
+<tr><td>
+<td id='compute-e1-001' title='compute-e1-001'>&nbsp;</td>
+<td id='compute-e1-002' title='compute-e1-002'>&nbsp;</td>
+<td id='compute-e1-003' title='compute-e1-003'>&nbsp;</td>
+<td id='compute-e1-004' title='compute-e1-004'>&nbsp;</td>
+<td id='compute-e1-005' title='compute-e1-005'>&nbsp;</td>
+<td id='compute-e1-006' title='compute-e1-006'>&nbsp;</td>
+<td id='compute-e1-007' title='compute-e1-007'>&nbsp;</td>
+<td id='compute-e1-008' title='compute-e1-008'>&nbsp;</td>
+<td id='compute-e1-009' title='compute-e1-009'>&nbsp;</td>
+<td id='compute-e1-010' title='compute-e1-010'>&nbsp;</td>
+<td id='compute-e1-011' title='compute-e1-011'>&nbsp;</td>
+<td id='compute-e1-012' title='compute-e1-012'>&nbsp;</td>
+<td id='compute-e1-013' title='compute-e1-013'>&nbsp;</td>
+<td id='compute-e1-014' title='compute-e1-014'>&nbsp;</td>
+<td id='compute-e1-015' title='compute-e1-015'>&nbsp;</td>
+<td id='compute-e1-016' title='compute-e1-016'>&nbsp;</td>
+<td id='compute-e1-017' title='compute-e1-017'>&nbsp;</td>
+<td id='compute-e1-018' title='compute-e1-018'>&nbsp;</td>
+<td id='compute-e1-019' title='compute-e1-019'>&nbsp;</td>
+<td id='compute-e1-020' title='compute-e1-020'>&nbsp;</td>
+<td id='compute-e1-021' title='compute-e1-021'>&nbsp;</td>
+</tr>
+<tr>
+<td id='compute-e1-022' title='compute-e1-022'>&nbsp;</td>
+<td id='compute-e1-045' title='compute-e1-045'>&nbsp;</td>
+<td id='compute-e1-046' title='compute-e1-046'>&nbsp;</td>
+<td id='compute-e1-047' title='compute-e1-047'>&nbsp;</td>
+<td id='compute-e1-048' title='compute-e1-048'>&nbsp;</td>
+<td id='compute-e1-049' title='compute-e1-049'>&nbsp;</td>
+<td id='compute-e1-050' title='compute-e1-050'>&nbsp;</td>
+<td id='compute-e1-051' title='compute-e1-051'>&nbsp;</td>
+<td id='compute-e1-052' title='compute-e1-052'>&nbsp;</td>
+<td id='compute-e1-053' title='compute-e1-053'>&nbsp;</td>
+<td id='compute-e1-054' title='compute-e1-054'>&nbsp;</td>
+<td id='compute-e1-055' title='compute-e1-055'>&nbsp;</td>
+<td id='compute-e1-056' title='compute-e1-056'>&nbsp;</td>
+<td id='compute-e1-057' title='compute-e1-057'>&nbsp;</td>
+<td id='compute-e1-058' title='compute-e1-058'>&nbsp;</td>
+<td id='compute-e1-059' title='compute-e1-059'>&nbsp;</td>
+<td id='compute-e1-060' title='compute-e1-060'>&nbsp;</td>
+<td id='compute-e1-061' title='compute-e1-061'>&nbsp;</td>
+<td id='compute-e1-062' title='compute-e1-062'>&nbsp;</td>
+<td id='compute-e1-023' title='compute-e1-023'>&nbsp;</td>
+<td id='compute-e1-024' title='compute-e1-024'>&nbsp;</td>
+</tr>
+<tr>
+<td id='compute-e1-025' title='compute-e1-025'>&nbsp;</td>
+<td id='compute-e1-026' title='compute-e1-026'>&nbsp;</td>
+<td id='compute-e1-027' title='compute-e1-027'>&nbsp;</td>
+<td id='compute-e1-028' title='compute-e1-028'>&nbsp;</td>
+<td id='compute-e1-029' title='compute-e1-029'>&nbsp;</td>
+<td id='compute-e1-030' title='compute-e1-030'>&nbsp;</td>
+<td id='compute-e1-031' title='compute-e1-031'>&nbsp;</td>
+<td id='compute-e1-032' title='compute-e1-032'>&nbsp;</td>
+<td id='compute-e1-033' title='compute-e1-033'>&nbsp;</td>
+<td id='compute-e1-034' title='compute-e1-034'>&nbsp;</td>
+<td id='compute-e1-035' title='compute-e1-035'>&nbsp;</td>
+<td id='compute-e1-036' title='compute-e1-036'>&nbsp;</td>
+<td id='compute-e1-037' title='compute-e1-037'>&nbsp;</td>
+<td id='compute-e1-038' title='compute-e1-038'>&nbsp;</td>
+<td id='compute-e1-039' title='compute-e1-039'>&nbsp;</td>
+<td id='compute-e1-040' title='compute-e1-040'>&nbsp;</td>
+<td id='compute-e1-041' title='compute-e1-041'>&nbsp;</td>
+<td id='compute-e1-042' title='compute-e1-042'>&nbsp;</td>
+<td id='compute-e1-043' title='compute-e1-043'>&nbsp;</td>
+<td id='compute-e1-044' title='compute-e1-044'>&nbsp;</td>
+<td id='compute-e1-063' title='compute-e1-063'>&nbsp;</td>
+</tr>
+<tr>
+<td id='compute-e1-064' title='compute-e1-064'>&nbsp;</td>
+<td id='compute-e1-065' title='compute-e1-065'>&nbsp;</td>
+<td id='compute-e1-066' title='compute-e1-066'>&nbsp;</td>
+<td id='compute-e1-067' title='compute-e1-067'>&nbsp;</td>
+<td id='compute-e1-068' title='compute-e1-068'>&nbsp;</td>
+<td id='compute-e1-069' title='compute-e1-069'>&nbsp;</td>
+<td id='compute-e1-070' title='compute-e1-070'>&nbsp;</td>
+<td id='compute-e1-071' title='compute-e1-071'>&nbsp;</td>
+<td id='compute-e1-072' title='compute-e1-072'>&nbsp;</td>
+<td id='compute-e1-073' title='compute-e1-073'>&nbsp;</td>
+<td id='compute-e1-074' title='compute-e1-074'>&nbsp;</td>
+<td id='compute-e1-075' title='compute-e1-075'>&nbsp;</td>
+<td id='compute-e1-076' title='compute-e1-076'>&nbsp;</td>
+<td id='compute-e1-077' title='compute-e1-077'>&nbsp;</td>
+<td id='compute-e1-078' title='compute-e1-078'>&nbsp;</td>
+<td id='compute-e1-079' title='compute-e1-079'>&nbsp;</td>
+<td id='compute-e1-080' title='compute-e1-080'>&nbsp;</td>
+<td id='compute-e1-081' title='compute-e1-081'>&nbsp;</td>
+<td id='compute-e1-082' title='compute-e1-082'>&nbsp;</td>
+<td class=empty>&nbsp;</td>
+<td class=empty>&nbsp;</td>
+</td></tr>
+</table></td>
+<td colspan=21><table class='rack'>
+<tr><td>
+<td id='compute-bigmem-001' title='compute-bigmem-001'>&nbsp;</td>
+<td id='compute-bigmem-003' title='compute-bigmem-003'>&nbsp;</td>
+<td id='compute-bigmem-004' title='compute-bigmem-004'>&nbsp;</td>
+<td id='compute-cs-001' title='compute-cs-001'>&nbsp;</td>
+<td id='compute-chem-001' title='compute-chem-001'>&nbsp;</td>
+<td id='compute-fmhs-001' title='compute-fmhs-001'>&nbsp;</td>
+<td id='compute-bigmem-002' title='compute-bigmem-002'>&nbsp;</td>
+<td class=empty>&nbsp;</td>
+<td class=empty>&nbsp;</td>
+<td class=empty>&nbsp;</td>
+<td class=empty>&nbsp;</td>
+<td class=empty>&nbsp;</td>
+<td class=empty>&nbsp;</td>
+<td class=empty>&nbsp;</td>
+<td class=empty>&nbsp;</td>
+<td class=empty>&nbsp;</td>
+<td class=empty>&nbsp;</td>
+<td class=empty>&nbsp;</td>
+<td class=empty>&nbsp;</td>
+<td class=empty>&nbsp;</td>
+<td class=empty>&nbsp;</td>
+</td></tr>
+</table></td>
+</tr>
+<tr><th colspan=21 align='right' id='date_stamp'>&nbsp;</th></tr>
+</table>
+
+<script>
+  init();
+</script>
+</body>
+</html>

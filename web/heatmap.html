@@ -1,0 +1,1429 @@
+<html>
+<head>
+<title>CPU Usage</title>
+<meta name="robots" content="noindex,nofollow" />
+<meta name="description" content="Pan Cluster Management IPV4 Ping State" />
+
+<script> var ping_target='heatmap';
+         var state_file='/cgi-bin/noheader/heatmapjson2.cgi';
+         var ignore_file='ignore.json';
+         var page_header='Pan Usage Heatmap';
+</script>
+
+<script src="/rgraph/libraries/RGraph.common.core.js" ></script>
+<script src="/rgraph/jquery.min.js"></script>
+     
+<style type="text/css">
+table.rack {
+  background-color: black;
+}
+table.rack td {
+  border-width: 1px;
+  border-style: solid;
+  border-color: black;
+  padding: 0px;
+  padding: 0px;
+  background-color: black;
+  color: white;
+  font-family:sans-serif;
+  font-size:4pt;
+  height: 5px;
+  width: 50px;
+}
+table.rack th {
+  border-width: 1px;
+  border-style: solid;
+  border-color: black;
+  padding: 0px;
+  padding: 0px;
+  background-color: grey;
+  color: white;
+  font-family:sans-serif;
+  font-size:12pt;
+}
+table.rack th.u {
+    background-color: black;
+    color: white;
+    font-family:sans-serif;
+    font-size:4pt;
+    height: 5px;
+    width: 5px;
+ }
+table.rack td.v {
+    background-color: black;
+    color: white;
+    font-family:sans-serif;
+    font-size:4pt;
+    height: 50px;
+    width: 5px;
+ }
+table.rack td.v4 {
+    background-color: black;
+    color: white;
+    font-family:sans-serif;
+    font-size:4pt;
+    height: 20px;
+    width: 5px;
+ }
+table.rack td.v5 {
+    background-color: black;
+    color: white;
+    font-family:sans-serif;
+    font-size:4pt;
+    height: 25px;
+    width: 5px;
+ }
+ table.tdcrow {
+   background-color: white;
+   border-width: 0px;
+ }
+ table.tdcrow th.u {
+   background-color: black;
+   color: white;
+   font-family:sans-serif;
+   font-size:4pt;
+   height: 5px;
+   width: 5px;
+ }
+</style>
+
+<script>
+  
+var cpu_dev_colourmap =       [            '#00ff00', '#06ff06', '#1eff1e', '#37ff37', '#50ff50', '#69ff69', '#82ff82', '#9bff9b', '#b4ffb4', '#cdffcd', 
+                                '#ffffff', 
+                                           '#ffe6e6', '#ffcdcd', '#ffb4b4', '#ff9b9b', '#ff8282', '#ff6969', '#ff5050', '#ff3737', '#ff1e1e', '#ff0000'];
+  var last_state = null;
+  var date_stamp = null;
+  var ignored = {};
+  var overloaded_nodes_table;
+  var nodes_with_weak_processes_table;
+
+  var delay_state = 120000; //2 minutes
+  var delay_master = 3600000; //1 Hour
+  var racks = {}; //record of what should be, by rack, then U in the rack. What machine is expected where, and any state it should have (some state is implied by there being a record)
+  var tdc_rack = ['L15','L15_D','K15','K15_B',
+                 'I15','I15_D','H15','H15_B','G15','G15_A','G15_B','G15_C','G15_D',
+                 'E15','E15_D','D15','D15_B','B15','B15_A','B15_B','B15_C','B15_D',
+                 'I18','I18_B','H18','H18_D','G18','G18_A','G18_B','G18_C','G18_D',
+                 'E18','E18_B','D18','D18_D','B18','B18_A','B18_B','B18_C','B18_D']; //And what racks (column names) are of interest to us.
+
+   function cell_colour(cell_type, used, reqested, max_value)
+   {
+     switch( cell_type ) {
+     case 'default': // cpusused/cpus Or cpusreq/cpus Or memused_mb/ mem_mb
+       color_index = Math.round(used*10/max_value)
+       if( used > max_value ) { color_index = 11 }
+       if( used < -10) { color_index = -10 } //Shouldn't be possible, but I have seen a -2 request?
+       return cpu_dev_colourmap[color_index + 10];
+     case 'deviation': // (cpusused - cpusreq') / cpus Or  (memused_mb - memreq_mb) / mem_mb
+       color_index = Math.round((used - reqested) * 10 / max_value)
+       if( color_index < -10 ) { color_index = -10 }
+       else { if( color_index > 10 ) { color_index = 11 } }
+       return cpu_dev_colourmap[color_index + 10];
+     case 'ignore': //Not interested in this node
+       return 'grey';
+     default:
+       return 'black';
+     }
+   }  
+
+  function set_cell(cell_id, state_index, title) {
+    var the_cell = document.getElementById(cell_id);
+    var select_category = document.getElementById('tdc_rack_view'); 
+    new_state = last_state[state_index];
+    if(the_cell != null && select_category != null) {
+      if(ignored[state_index] != null || state_index == 'ignore') {
+        the_cell.title = title;
+        the_cell.style.backgroundColor = 'grey'; 
+        the_cell.style.borderColor = 'black';
+      }
+      else if(state_index == 'blank') {
+        the_cell.title = title;
+        the_cell.style.backgroundColor = 'black'; 
+        the_cell.style.borderColor = 'white';
+      }
+      else {
+        if(new_state != null && new_state['cpus'] != null ) {
+          var background = 'black';
+          switch( select_category.value ) {
+          case "cpusdeviation": 
+            background = cell_colour('deviation', new_state['cpusused'], new_state['cpusreq'], new_state['cpus']);
+            break;
+          case "cpusreq":
+            background = cell_colour('default', new_state['cpusreq'], 0, new_state['cpus']);
+            break;
+          case "cpusused":
+            background = cell_colour('default', new_state['cpusused'], 0, new_state['cpus']);
+            break;
+          case "memdeviation":
+            background = cell_colour('deviation', new_state['memused_mb'], new_state['memreq_mb'], new_state['mem_mb']);
+            break;
+          case "memreq":
+            background = cell_colour('default', new_state['memreq_mb'], 0, new_state['mem_mb']);
+            break;
+          case "memused":
+            background = cell_colour('default', new_state['memused_mb'], 0, new_state['mem_mb']);
+            break;
+          } 
+          the_cell.title = state_index + 
+                          '\n\nCPUs: ' + new_state['cpus'] + '\nCPUs requested: ' + new_state['cpusreq'] + '\nCPUs used: ' + new_state['cpusused'] +
+                          '\n\nMemory: ' +  new_state['mem_mb'] + '\nMemory requested: ' + new_state['memreq_mb'] + '\nMemory used: ' + new_state['memused_mb'] +
+                          '\n\nVirtual Memory: ' +  new_state['vmem_mb'] + '\nVirtual Memory requested: ' + new_state['vmemreq_mb'] + '\nVirtualMemory used: ' + new_state['vmemused_mb'];
+          the_cell.style.backgroundColor = background;
+          the_cell.style.borderColor = 'black';
+        }
+        else { //Null new state, so didn't get a record for this host.
+          the_cell.style.backgroundColor = 'white';
+          the_cell.style.borderColor = 'orange';
+          the_cell.title = state_index  ;
+        } 
+      }
+    }
+  }
+  
+
+
+  function drop_table_cells(table) {
+    for(var i = table.rows.length - 1; i >= 0; i--) { 
+      table.deleteRow(i)
+    }
+  }
+  
+  function set_nodes_with_weak_processes(state_index) {
+    var table_rows = [];
+    drop_table_cells(nodes_with_weak_processes_table);
+    
+    for(var s in last_state) {
+      if(last_state[s] != null && last_state[s]["num_weak_processes"] != null && last_state[s]["num_weak_processes"] > 0) {
+        table_rows.push([s, last_state[s]["num_weak_processes"]])
+      }
+    }
+    table_rows.sort(function(a, b) {return a[1] - b[1]})
+        
+    for(var i=0; i < table_rows.length; i++) {
+      var row = nodes_with_weak_processes_table.insertRow(0);
+      var cell1 = row.insertCell(0);
+      var cell2 = row.insertCell(1);
+      cell1.innerHTML = '<a href="https://web.ceres.auckland.ac.nz/portal/#/portal/hpc/cgi-bin/noheader/shownode.cgi?nodename=' + table_rows[i][0] + '">'+ table_rows[i][0] +'</a>'
+      cell2.innerHTML = table_rows[i][1];
+    }
+  }
+  
+  function set_overloaded_nodes(){
+    var table_rows = [];
+    
+    drop_table_cells(overloaded_nodes_table);
+    
+    for(var s in last_state) {
+      if(last_state[s] != null && last_state[s]["cpusused"] != null && last_state[s]["cpusused"] > last_state[s]["cpus"]) {
+        table_rows.push([s, last_state[s]["cpusused"] - last_state[s]["cpus"], last_state[s]["cpusused"], last_state[s]["cpus"]])
+      }
+    }
+    table_rows.sort(function(a, b) {return a[1] - b[1]})
+    
+    for(var i=0; i < table_rows.length; i++) {
+      var row = overloaded_nodes_table.insertRow(0);
+      var cell1 = row.insertCell(0);
+      var cell2 = row.insertCell(1);
+      var cell3 = row.insertCell(2);
+      var cell4 = row.insertCell(3);
+      cell1.innerHTML = '<a href="https://web.ceres.auckland.ac.nz/portal/#/portal/hpc/cgi-bin/noheader/shownode.cgi?nodename=' + table_rows[i][0] + '">'+ table_rows[i][0] +'</a>'
+      cell2.innerHTML = table_rows[i][1];
+      cell3.innerHTML = table_rows[i][2];
+      cell4.innerHTML = table_rows[i][3];
+    }
+  }
+    
+  function calc_load() {
+    // Calculate total cluster load
+    var cluster_actual_load = 0.0
+    var cluster_requested_load = 0.0
+    var load_ratio = 0.0
+    var effective_load = 0.0
+    var count = 0
+
+    for( key in last_state ) {
+      if(last_state[key]['total_actual_load'] != null) {
+        cluster_actual_load += last_state[key]['total_actual_load'] / last_state[key]['cpus']
+        cluster_requested_load += last_state[key]['total_requested_load'] / last_state[key]['cpus']
+        count += 1
+      }
+    }
+    if( count > 0 ) {
+      cluster_actual_load = cluster_actual_load / count
+      cluster_requested_load = cluster_requested_load / count
+    }
+    if( cluster_requested_load > 0 ) {
+      load_ratio = cluster_actual_load / cluster_requested_load
+      effective_load = (cluster_actual_load / cluster_requested_load) * cluster_actual_load
+    }
+    var actual_load_el = document.getElementById('actual_load');
+    var requested_load_el = document.getElementById('requested_load')
+    var load_ratio_el = document.getElementById('load_ratio')
+    var effective_load_el = document.getElementById('effective_load')
+    actual_load_el.innerHTML = Math.round(cluster_actual_load.toString());
+    requested_load_el.innerHTML = Math.round(cluster_requested_load.toString());
+    load_ratio_el.innerHTML = Math.round(100 * load_ratio.toString())/100.0;
+    effective_load_el.innerHTML = Math.round(effective_load.toString());
+  }
+    
+  var cell_id_to_node_name = {  };
+
+  function process_each_rack() {
+    var table_date_stamp = document.getElementById('date_stamp');
+    calc_load();
+    if(window.racks != null) { //We have loaded the master record of what should be in the racks.
+      for(var c = 0; c < window.tdc_rack.length; c++) { //columns in those rows
+        var rack_name = window.tdc_rack[c]  ; //eg. B18
+        //alert('processing ' + rack_name);
+        if(window.racks[rack_name] != null && window.racks[rack_name]['rack_u'] != null) { //master json record knows about this rack.
+          for(var u = 1; u <= window.racks[rack_name]['rack_u'].length; u++) { 
+              if(window.racks[rack_name] != null && window.racks[rack_name]['rack_u'] != null && window.racks[rack_name]['rack_u'][u] != null) {
+              if(window.racks[rack_name]['rack_u'][u]['model'] == 'BLANK') {
+                set_cell(rack_name + '_' + u.toString(), 'blank', rack_name + '_' + u.toString());
+              } else { //set cell state based on management network state
+                if(  window.racks[rack_name]['rack_u'][u][window.ping_target]  == "" ) {
+                  set_cell(rack_name + '_' + u.toString(), 'ignore', rack_name + '_' + u.toString()) //we know there will not be a state record (or don't care)
+                } else {
+                  set_cell(rack_name + '_' + u.toString(), window.racks[rack_name]['rack_u'][u][window.ping_target] , '') 
+                  cell_id_to_node_name[rack_name + '_' + u.toString()] = window.racks[rack_name]['rack_u'][u][window.ping_target];
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+    table_date_stamp.innerHTML = date_stamp;
+    set_overloaded_nodes();
+    set_nodes_with_weak_processes();
+  }
+
+  function recolor() {
+    if(last_state != null) {  process_each_rack(); }
+  }
+  
+  
+  function table_cell_click(cell_id) {
+    var node = cell_id_to_node_name[cell_id];
+    if(node != null) {
+      location.href = 'https://web.ceres.auckland.ac.nz/portal/#/portal/hpc/cgi-bin/noheader/shownode.cgi?nodename=' + node
+    }
+    return false;
+  }
+
+  function process_racks(racks_master) {
+    if(racks_master != null) { //We have loaded the master record of what should be in the racks.
+      window.racks = racks_master.rack; //context will be in a callback, so need to be explicit 
+      for(var r in window.racks ) { //each rack
+        nodes = window.racks[r]['nodes'] //List of nodes in the rack
+        var rack_u = [];
+        for(var i=1; i<= window.racks[r]['U']; i++ ) { //ensure undefined U in rack have blank plates
+          rack_u[i] = { "model": "BLANK", "u": i, "u_depth": 1, "management_net": "", "provisioning_net": "", "ipoib_net": "",  "ib_net": ""}
+        }
+        for(var u in nodes) { //overwrite blank plates with actual nodes defined in json.
+          for(var i=0; i < nodes[u]['u_depth']; i++){
+            //alert(nodes[u]['u']);
+            rack_u[nodes[u]['u'] + i] = nodes[u];
+          }
+        }
+        window.racks[r]['rack_u'] = rack_u ; //add in processed rack u's
+        //alert(window.racks[r]['rack_u'][1]);
+      }
+    }
+  }
+          
+  function myAJAXCallback_state(data) {
+    date_stamp = data.datetime.substring(0,19);
+    last_state = data.state;
+    process_each_rack();
+    // Make another AJAX call after the delay (which is in milliseconds)
+    setTimeout(function () { RGraph.AJAX.getJSON(window.state_file + "?timestamp="+ Date.now(), myAJAXCallback_state); }, delay_state);
+  }
+    
+  function myAJAXCallback_ignore(data) {
+    for(var i=0; i < data.ignore.length; i++) {
+      ignored[data.ignore[i]] = 1
+    }
+    
+    // Make another AJAX call after the delay (which is in milliseconds)
+    setTimeout(function () { RGraph.AJAX.getJSON(window.ignore_file + "?timestamp="+ Date.now(), myAJAXCallback_ignore); }, delay_state);
+  }
+
+  function myAJAXCallback_master(data) {
+    //alert("in myAJAXCallback_master");
+    process_racks(data);
+    // Make another AJAX call after the delay (which is in milliseconds)
+    setTimeout(function () { RGraph.AJAX.getJSON('rack_master.json' + "?timestamp="+ Date.now(), myAJAXCallback_master); }, delay_master);
+  }
+      
+  function init() {
+  /**
+  * Initial AJAX calls
+  */
+    var header = document.getElementById('header');
+    
+    nodes_with_weak_processes_table = document.getElementById("nodes_with_weak_processes_table");
+    overloaded_nodes_table = document.getElementById("overloaded_nodes_table");
+    
+    setTimeout(function () { RGraph.AJAX.getJSON('rack_master.json' + "?timestamp="+ Date.now(), myAJAXCallback_master);}, 0);
+    setTimeout(function () { RGraph.AJAX.getJSON(window.ignore_file + "?timestamp="+ Date.now(), myAJAXCallback_ignore); }, 0);
+    setTimeout(function () { RGraph.AJAX.getJSON(window.state_file + "?timestamp="+ Date.now(), myAJAXCallback_state);}, 1000);
+    header.innerHTML = window.page_header;
+  }
+</script>
+
+</head>
+<body>
+<H1 id="header">XXXX State</H1>
+<b>Cluster load:</b> Actual: <span id='actual_load'>0</span>%, Requested: <span id='requested_load'>0</span>%, Load ratio: <span id='load_ratio'>0.0</span>, Effective Load: <span id='effective_load'>0</span>%<br>
+
+<table id="tdc_rack" class="tdcrow">
+  <tr>
+    <th colspan=15 align='right'>
+      <select id="tdc_rack_view" onchange="recolor()">
+        <option value="cpusdeviation">CPU cores: discrepancy used vs requested</option>
+        <option value="cpusreq">CPU cores: requested usage</option>
+        <option value="cpusused" selected>CPU cores: actual usage</option>
+        <option value="memdeviation">Memory: discrepancy used vs requested</option>
+        <option value="memreq">Memory: requested usage</option>
+        <option value="memused">Memory: actual usage</option>
+      </select>
+    </th>
+  </tr>
+<tr ><th colspan="2">B-Rack</th><th>C2</th><th colspan="2">A-Rack</th><th>A2</th>
+	<td>&nbsp;</td>
+	<th>A3</th><th colspan="2">D-Rack</th><th>C4</th><th colspan="2">C-Rack</th><th colspan="2">E-Rack</th>
+</tr>
+<tr>
+  <td><table id='I18' class=rack><tr><th>&nbsp;</th><th>I18</th><th colspan="2">B</th></tr>
+      <tr><th class=u>43</th><td title='I18_43' onclick="table_cell_click('I18_43');" id='I18_43'>&nbsp;</td>
+	  	<td class=v rowspan="10" title='I18_B_7' id='I18_B_7'>&nbsp;</td>
+	      <td class=v rowspan="10" title='I18_B_8' id='I18_B_8'>&nbsp;</td>
+	  </tr>
+      <tr><th class=u>42</th><td title='I18_42' onclick="table_cell_click('I18_42');" id='I18_42'>&nbsp;</td></tr>
+      <tr><th class=u>41</th><td title='I18_41' onclick="table_cell_click('I18_41');" id='I18_41'>&nbsp;</td></tr>
+      <tr><th class=u>40</th><td title='I18_40' onclick="table_cell_click('I18_40');" id='I18_40'>&nbsp;</td></tr>
+      <tr><th class=u>39</th><td title='I18_39' onclick="table_cell_click('I18_39');" id='I18_39'>&nbsp;</td></tr>
+      <tr><th class=u>38</th><td title='I18_38' onclick="table_cell_click('I18_38');" id='I18_38'>&nbsp;</td></tr>
+      <tr><th class=u>37</th><td title='I18_37' onclick="table_cell_click('I18_37');" id='I18_37'>&nbsp;</td></tr>
+      <tr><th class=u>36</th><td title='I18_36' onclick="table_cell_click('I18_36');" id='I18_36'>&nbsp;</td></tr>
+      <tr><th class=u>35</th><td title='I18_35' onclick="table_cell_click('I18_35');" id='I18_35'>&nbsp;</td></tr>
+      <tr><th class=u>34</th><td title='I18_34' onclick="table_cell_click('I18_34');" id='I18_34'>&nbsp;</td></tr>
+      <tr><th class=u>33</th><td title='I18_33' onclick="table_cell_click('I18_33');" id='I18_33'>&nbsp;</td>
+			<th class=u>5</th><th class=u>6</th></tr>
+	  </tr>
+      <tr><th class=u>32</th><td title='I18_32' onclick="table_cell_click('I18_32');" id='I18_32'>&nbsp;</td>
+	      <td class=v rowspan="10" title='I18_B_5' id='I18_B_5'>&nbsp;</td>
+	      <td class=v rowspan="10" title='I18_B_6' id='I18_B_6'>&nbsp;</td>
+	  </tr>
+      <tr><th class=u>31</th><td title='I18_31' onclick="table_cell_click('I18_31');" id='I18_31'>&nbsp;</td></tr>
+      <tr><th class=u>30</th><td title='I18_30' onclick="table_cell_click('I18_30');" id='I18_30'>&nbsp;</td></tr>
+      <tr><th class=u>29</th><td title='I18_29' onclick="table_cell_click('I18_29');" id='I18_29'>&nbsp;</td></tr>
+      <tr><th class=u>28</th><td title='I18_28' onclick="table_cell_click('I18_28');" id='I18_28'>&nbsp;</td></tr>
+      <tr><th class=u>27</th><td title='I18_27' onclick="table_cell_click('I18_27');" id='I18_27'>&nbsp;</td></tr>
+      <tr><th class=u>26</th><td title='I18_26' onclick="table_cell_click('I18_26');" id='I18_26'>&nbsp;</td></tr>
+      <tr><th class=u>25</th><td title='I18_25' onclick="table_cell_click('I18_25');" id='I18_25'>&nbsp;</td></tr>
+      <tr><th class=u>24</th><td title='I18_24' onclick="table_cell_click('I18_24');" id='I18_24'>&nbsp;</td></tr>
+      <tr><th class=u>23</th><td title='I18_23' onclick="table_cell_click('I18_23');" id='I18_23'>&nbsp;</td></tr>
+      <tr><th class=u>22</th><td title='I18_22' onclick="table_cell_click('I18_22');" id='I18_22'>&nbsp;</td>
+	      <th class=u>3</th><th class=u>4</th>
+	  </tr>
+      <tr><th class=u>21</th><td title='I18_21' onclick="table_cell_click('I18_21');" id='I18_21'>&nbsp;</td>
+	      <td class=v rowspan="10" title='I18_B_3' id='I18_B_3'>&nbsp;</td> 
+	      <td class=v rowspan="10" title='I18_B_4' id='I18_B_4'>&nbsp;</td>
+	  </tr>
+      <tr><th class=u>20</th><td title='I18_20' onclick="table_cell_click('I18_20');" id='I18_20'>&nbsp;</td></tr>
+      <tr><th class=u>19</th><td title='I18_19' onclick="table_cell_click('I18_19');" id='I18_19'>&nbsp;</td></tr>
+      <tr><th class=u>18</th><td title='I18_18' onclick="table_cell_click('I18_18');" id='I18_18'>&nbsp;</td></tr>
+      <tr><th class=u>17</th><td title='I18_17' onclick="table_cell_click('I18_17');" id='I18_17'>&nbsp;</td></tr>
+      <tr><th class=u>16</th><td title='I18_16' onclick="table_cell_click('I18_16');" id='I18_16'>&nbsp;</td></tr>
+      <tr><th class=u>15</th><td title='I18_15' onclick="table_cell_click('I18_15');" id='I18_15'>&nbsp;</td></tr>
+      <tr><th class=u>14</th><td title='I18_14' onclick="table_cell_click('I18_14');" id='I18_14'>&nbsp;</td></tr>
+      <tr><th class=u>13</th><td title='I18_13' onclick="table_cell_click('I18_13');" id='I18_13'>&nbsp;</td></tr>
+      <tr><th class=u>12</th><td title='I18_12' onclick="table_cell_click('I18_12');" id='I18_12'>&nbsp;</td></tr>
+      <tr><th class=u>11</th><td title='I18_11' onclick="table_cell_click('I18_11');" id='I18_11'>&nbsp;</td>
+	      <th class=u>1</th><th class=u>2</th>
+	  </tr>
+      <tr><th class=u>10</th><td title='I18_10' onclick="table_cell_click('I18_10');" id='I18_10'>&nbsp;</td>
+	      <td class=v rowspan="10" title='I18_B_1' id='I18_B_1'>&nbsp;</td> 
+	      <td class=v rowspan="10" title='I18_B_2' id='I18_B_2'>&nbsp;</td>
+	  </tr>
+      <tr><th class=u>9</th><td title='I18_9' onclick="table_cell_click('I18_9');" id='I18_9'>&nbsp;</td></tr>
+      <tr><th class=u>8</th><td title='I18_8' onclick="table_cell_click('I18_8');" id='I18_8'>&nbsp;</td></tr>
+      <tr><th class=u>7</th><td title='I18_7' onclick="table_cell_click('I18_7');" id='I18_7'>&nbsp;</td></tr>
+      <tr><th class=u>6</th><td title='I18_6' onclick="table_cell_click('I18_6');" id='I18_6'>&nbsp;</td></tr>
+      <tr><th class=u>5</th><td title='I18_5' onclick="table_cell_click('I18_5');" id='I18_5'>&nbsp;</td></tr>
+      <tr><th class=u>4</th><td title='I18_4' onclick="table_cell_click('I18_4');" id='I18_4'>&nbsp;</td></tr>
+      <tr><th class=u>3</th><td title='I18_3' onclick="table_cell_click('I18_3');" id='I18_3'>&nbsp;</td></tr>
+      <tr><th class=u>2</th><td title='I18_2' onclick="table_cell_click('I18_2');" id='I18_2'>&nbsp;</td></tr>
+      <tr><th class=u>1</th><td title='I18_1' onclick="table_cell_click('I18_1');" id='I18_1'>&nbsp;</td></tr>
+    </table></td>
+
+    <td><table id='H18' class=rack><tr><th>&nbsp;</th><th>H18</th><th colspan="2">D</th></tr>
+      <tr><th class=u>43</th><td title='H18_43' onclick="table_cell_click('H18_43');" id='H18_43'>&nbsp;</td>
+	  	<td class=v rowspan="10" title='H18_D_7' id='H18_D_7'>&nbsp;</td> 
+	  	<td class=v rowspan="10" title='H18_D_8' id='H18_D_8'>&nbsp;</td>
+	  </tr>
+      <tr><th class=u>42</th><td title='H18_42' onclick="table_cell_click('H18_42');" id='H18_42'>&nbsp;</td></tr>
+      <tr><th class=u>41</th><td title='H18_41' onclick="table_cell_click('H18_41');" id='H18_41'>&nbsp;</td></tr>
+      <tr><th class=u>40</th><td title='H18_40' onclick="table_cell_click('H18_40');" id='H18_40'>&nbsp;</td></tr>
+      <tr><th class=u>39</th><td title='H18_39' onclick="table_cell_click('H18_39');" id='H18_39'>&nbsp;</td></tr>
+      <tr><th class=u>38</th><td title='H18_38' onclick="table_cell_click('H18_38');" id='H18_38'>&nbsp;</td></tr>
+      <tr><th class=u>37</th><td title='H18_37' onclick="table_cell_click('H18_37');" id='H18_37'>&nbsp;</td></tr>
+      <tr><th class=u>36</th><td title='H18_36' onclick="table_cell_click('H18_36');" id='H18_36'>&nbsp;</td></tr>
+      <tr><th class=u>35</th><td title='H18_35' onclick="table_cell_click('H18_35');" id='H18_35'>&nbsp;</td></tr>
+      <tr><th class=u>34</th><td title='H18_34' onclick="table_cell_click('H18_34');" id='H18_34'>&nbsp;</td></tr>
+      <tr><th class=u>33</th><td title='H18_33' onclick="table_cell_click('H18_33');" id='H18_33'>&nbsp;</td>
+			<th class=u>5</th><th class=u>6</th></tr>
+	  </tr>
+      <tr><th class=u>32</th><td title='H18_32' onclick="table_cell_click('H18_32');" id='H18_32'>&nbsp;</td>
+	      <td class=v rowspan="10" title='H18_D_5' id='H18_D_5'>&nbsp;</td> 
+	      <td class=v rowspan="10" title='H18_D_6' id='H18_D_6'>&nbsp;</td>
+	  </tr>
+      <tr><th class=u>31</th><td title='H18_31' onclick="table_cell_click('H18_31');" id='H18_31'>&nbsp;</td></tr>
+      <tr><th class=u>30</th><td title='H18_30' onclick="table_cell_click('H18_30');" id='H18_30'>&nbsp;</td></tr>
+      <tr><th class=u>29</th><td title='H18_29' onclick="table_cell_click('H18_29');" id='H18_29'>&nbsp;</td></tr>
+      <tr><th class=u>28</th><td title='H18_28' onclick="table_cell_click('H18_28');" id='H18_28'>&nbsp;</td></tr>
+      <tr><th class=u>27</th><td title='H18_27' onclick="table_cell_click('H18_27');" id='H18_27'>&nbsp;</td></tr>
+      <tr><th class=u>26</th><td title='H18_26' onclick="table_cell_click('H18_26');" id='H18_26'>&nbsp;</td></tr>
+      <tr><th class=u>25</th><td title='H18_25' onclick="table_cell_click('H18_25');" id='H18_25'>&nbsp;</td></tr>
+      <tr><th class=u>24</th><td title='H18_24' onclick="table_cell_click('H18_24');" id='H18_24'>&nbsp;</td></tr>
+      <tr><th class=u>23</th><td title='H18_23' onclick="table_cell_click('H18_23');" id='H18_23'>&nbsp;</td></tr>
+      <tr><th class=u>22</th><td title='H18_22' onclick="table_cell_click('H18_22');" id='H18_22'>&nbsp;</td>
+	      <th class=u>3</th><th class=u>4</th>
+	  </tr>
+      <tr><th class=u>21</th><td title='H18_21' onclick="table_cell_click('H18_21');" id='H18_21'>&nbsp;</td>
+	      <td class=v rowspan="10" title='H18_D_3' id='H18_D_3'>&nbsp;</td> 
+	      <td class=v rowspan="10" title='H18_D_4' id='H18_D_4'>&nbsp;</td>
+	  </tr>
+      <tr><th class=u>20</th><td title='H18_20' onclick="table_cell_click('H18_20');" id='H18_20'>&nbsp;</td></tr>
+      <tr><th class=u>19</th><td title='H18_19' onclick="table_cell_click('H18_19');" id='H18_19'>&nbsp;</td></tr>
+      <tr><th class=u>18</th><td title='H18_18' onclick="table_cell_click('H18_18');" id='H18_18'>&nbsp;</td></tr>
+      <tr><th class=u>17</th><td title='H18_17' onclick="table_cell_click('H18_17');" id='H18_17'>&nbsp;</td></tr>
+      <tr><th class=u>16</th><td title='H18_16' onclick="table_cell_click('H18_16');" id='H18_16'>&nbsp;</td></tr>
+      <tr><th class=u>15</th><td title='H18_15' onclick="table_cell_click('H18_15');" id='H18_15'>&nbsp;</td></tr>
+      <tr><th class=u>14</th><td title='H18_14' onclick="table_cell_click('H18_14');" id='H18_14'>&nbsp;</td></tr>
+      <tr><th class=u>13</th><td title='H18_13' onclick="table_cell_click('H18_13');" id='H18_13'>&nbsp;</td></tr>
+      <tr><th class=u>12</th><td title='H18_12' onclick="table_cell_click('H18_12');" id='H18_12'>&nbsp;</td></tr>
+      <tr><th class=u>11</th><td title='H18_11' onclick="table_cell_click('H18_11');" id='H18_11'>&nbsp;</td>
+	      <th class=u>1</th><th class=u>2</th>
+	  </tr>
+      <tr><th class=u>10</th><td title='H18_10' onclick="table_cell_click('H18_10');" id='H18_10'>&nbsp;</td>
+	      <td class=v rowspan="10" title='H18_D_1' id='H18_D_1'>&nbsp;</td> 
+	      <td class=v rowspan="10" title='H18_D_2' id='H18_D_2'>&nbsp;</td>
+	  </tr>
+      <tr><th class=u>9</th><td title='H18_9' onclick="table_cell_click('H18_9');" id='H18_9'>&nbsp;</td></tr>
+      <tr><th class=u>8</th><td title='H18_8' onclick="table_cell_click('H18_8');" id='H18_8'>&nbsp;</td></tr>
+      <tr><th class=u>7</th><td title='H18_7' onclick="table_cell_click('H18_7');" id='H18_7'>&nbsp;</td></tr>
+      <tr><th class=u>6</th><td title='H18_6' onclick="table_cell_click('H18_6');" id='H18_6'>&nbsp;</td></tr>
+      <tr><th class=u>5</th><td title='H18_5' onclick="table_cell_click('H18_5');" id='H18_5'>&nbsp;</td></tr>
+      <tr><th class=u>4</th><td title='H18_4' onclick="table_cell_click('H18_4');" id='H18_4'>&nbsp;</td></tr>
+      <tr><th class=u>3</th><td title='H18_3' onclick="table_cell_click('H18_3');" id='H18_3'>&nbsp;</td></tr>
+      <tr><th class=u>2</th><td title='H18_2' onclick="table_cell_click('H18_2');" id='H18_2'>&nbsp;</td></tr>
+      <tr><th class=u>1</th><td title='H18_1' onclick="table_cell_click('H18_1');" id='H18_1'>&nbsp;</td></tr>
+    </table></td>
+
+    <td><table id='G18' class=rack><tr><th>&nbsp;</th><th colspan="3">G18</th></tr>
+      <tr><th class=u>43</th>
+	      <th class=u>&nbsp;</th>
+	      <td title='G18_43' onclick="table_cell_click('G18_43');" id='G18_43'>&nbsp;</td>
+	      <th class=u>&nbsp;</th>
+	  </tr>
+      <tr><th class=u>42</th>
+	      <th class=u>&nbsp;</th>
+	      <td title='G18_42' onclick="table_cell_click('G18_42');" id='G18_42'>&nbsp;</td>
+	      <th class=u>&nbsp;</th>
+	  </tr>
+      <tr><th class=u>41</th>
+	      <td class=v rowspan="10">&nbsp;</td>
+	      <td title='G18_41' onclick="table_cell_click('G18_41');" id='G18_41'>&nbsp;</td>
+	      <td class=v rowspan="10">&nbsp;</td>
+	  </tr>
+      <tr><th class=u>40</th><td title='G18_40' onclick="table_cell_click('G18_40');" id='G18_40'>&nbsp;</td></tr>
+      <tr><th class=u>39</th><td title='G18_39' onclick="table_cell_click('G18_39');" id='G18_39'>&nbsp;</td></tr>
+      <tr><th class=u>38</th><td title='G18_38' onclick="table_cell_click('G18_38');" id='G18_38'>&nbsp;</td></tr>
+      <tr><th class=u>37</th><td title='G18_37' onclick="table_cell_click('G18_37');" id='G18_37'>&nbsp;</td></tr>
+      <tr><th class=u>36</th><td title='G18_36' onclick="table_cell_click('G18_36');" id='G18_36'>&nbsp;</td></tr>
+      <tr><th class=u>35</th><td title='G18_35' onclick="table_cell_click('G18_35');" id='G18_35'>&nbsp;</td></tr>
+      <tr><th class=u>34</th><td title='G18_34' onclick="table_cell_click('G18_34');" id='G18_34'>&nbsp;</td></tr>
+      <tr><th class=u>33</th><td title='G18_33' onclick="table_cell_click('G18_33');" id='G18_33'>&nbsp;</td></tr>
+      <tr><th class=u>32</th><td title='G18_32' onclick="table_cell_click('G18_32');" id='G18_32'>&nbsp;</td></tr>
+      <tr><th class=u>31</th>
+	     <th class=u>A</th>
+	     <td title='G18_31' onclick="table_cell_click('G18_31');" id='G18_31'>&nbsp;</td>
+	     <th class=u>B</th>
+	  </tr>
+      <tr><th class=u>30</th>
+	      <td class=v rowspan="10" title='G18_A_1' id='G18_A_1'>&nbsp;</td>
+	      <td title='G18_30' onclick="table_cell_click('G18_30');" id='G18_30'>&nbsp;</td>
+	      <td class=v rowspan="10" title='G18_B_1' id='G18_B_1'>&nbsp;</td>
+	  </tr>
+      <tr><th class=u>29</th><td title='G18_29' onclick="table_cell_click('G18_29');" id='G18_29'>&nbsp;</td></tr>
+      <tr><th class=u>28</th><td title='G18_28' onclick="table_cell_click('G18_28');" id='G18_28'>&nbsp;</td></tr>
+      <tr><th class=u>27</th><td title='G18_27' onclick="table_cell_click('G18_27');" id='G18_27'>&nbsp;</td></tr>
+      <tr><th class=u>26</th><td title='G18_26' onclick="table_cell_click('G18_26');" id='G18_26'>&nbsp;</td></tr>
+      <tr><th class=u>25</th><td title='G18_25' onclick="table_cell_click('G18_25');" id='G18_25'>&nbsp;</td></tr>
+      <tr><th class=u>24</th><td title='G18_24' onclick="table_cell_click('G18_24');" id='G18_24'>&nbsp;</td></tr>
+      <tr><th class=u>23</th><td title='G18_23' onclick="table_cell_click('G18_23');" id='G18_23'>&nbsp;</td></tr>
+      <tr><th class=u>22</th><td title='G18_22' onclick="table_cell_click('G18_22');" id='G18_22'>&nbsp;</td></tr>
+      <tr><th class=u>21</th><td title='G18_21' onclick="table_cell_click('G18_21');" id='G18_21'>&nbsp;</td></tr>
+      <tr><th class=u>20</th>
+	      <td class=v4 rowspan="4">&nbsp;</td>
+	      <td title='G18_20' onclick="table_cell_click('G18_20');" id='G18_20'>&nbsp;</td>
+	      <td class=v4 rowspan="4">&nbsp;</td>
+	  </tr>
+      <tr><th class=u>19</th><td title='G18_19' onclick="table_cell_click('G18_19');" id='G18_19'>&nbsp;</td></tr>
+      <tr><th class=u>18</th><td title='G18_18' onclick="table_cell_click('G18_18');" id='G18_18'>&nbsp;</td></tr>
+      <tr><th class=u>17</th><td title='G18_17' onclick="table_cell_click('G18_17');" id='G18_17'>&nbsp;</td></tr>
+      <tr><th class=u>16</th>
+	      <th class=u>C</th>
+	      <td title='G18_16' onclick="table_cell_click('G18_16');" id='G18_16'>&nbsp;</td>
+	      <th class=u>D</th>
+	  </tr>
+      <tr><th class=u>15</th>
+	      <td class=v rowspan="10" title='G18_C_1' id='G18_C_1'>&nbsp;</td>
+	      <td title='G18_15' onclick="table_cell_click('G18_15');" id='G18_15'>&nbsp;</td>
+	      <td class=v rowspan="10" title='G18_D_1' id='G18_D_1'>&nbsp;</td>
+	  </tr>
+      <tr><th class=u>14</th><td title='G18_14' onclick="table_cell_click('G18_14');" id='G18_14'>&nbsp;</td></tr>
+      <tr><th class=u>13</th><td title='G18_13' onclick="table_cell_click('G18_13');" id='G18_13'>&nbsp;</td></tr>
+      <tr><th class=u>12</th><td title='G18_12' onclick="table_cell_click('G18_12');" id='G18_12'>&nbsp;</td></tr>
+      <tr><th class=u>11</th><td title='G18_11' onclick="table_cell_click('G18_11');" id='G18_11'>&nbsp;</td></tr>
+      <tr><th class=u>10</th><td title='G18_10' onclick="table_cell_click('G18_10');" id='G18_10'>&nbsp;</td></tr>
+      <tr><th class=u>9</th><td title='G18_9' onclick="table_cell_click('G18_9');" id='G18_9'>&nbsp;</td></tr>
+      <tr><th class=u>8</th><td title='G18_8' onclick="table_cell_click('G18_8');" id='G18_8'>&nbsp;</td></tr>
+      <tr><th class=u>7</th><td title='G18_7' onclick="table_cell_click('G18_7');" id='G18_7'>&nbsp;</td></tr>
+      <tr><th class=u>6</th><td title='G18_6' onclick="table_cell_click('G18_6');" id='G18_6'>&nbsp;</td></tr>
+      <tr><th class=u>5</th>
+	      <td class=v5 rowspan="5">&nbsp;</td>
+	      <td title='G18_5' onclick="table_cell_click('G18_5');" id='G18_5'>&nbsp;</td>
+	      <td class=v5 rowspan="5">&nbsp;</td>
+	  </tr>
+      <tr><th class=u>4</th><td title='G18_4' onclick="table_cell_click('G18_4');" id='G18_4'>&nbsp;</td></tr>
+      <tr><th class=u>3</th><td title='G18_3' onclick="table_cell_click('G18_3');" id='G18_3'>&nbsp;</td></tr>
+      <tr><th class=u>2</th><td title='G18_2' onclick="table_cell_click('G18_2');" id='G18_2'>&nbsp;</td></tr>
+      <tr><th class=u>1</th><td title='G18_1' onclick="table_cell_click('G18_1');" id='G18_1'>&nbsp;</td></tr>
+    </table></td>
+
+    <td><table id='E18' class=rack><tr><th>&nbsp;</th><th>E18</th><th colspan="2">B</th></tr>
+      <tr><th class=u>43</th><td title='E18_43' onclick="table_cell_click('E18_43');" id='E18_43'>&nbsp;</td>
+	  	<td class=v rowspan="10" title='E18_B_7' id='E18_B_7'>&nbsp;</td> 
+	  	<td class=v rowspan="10" title='E18_B_8' id='E18_B_8'>&nbsp;</td>
+	  </tr>
+      <tr><th class=u>42</th><td title='E18_42' onclick="table_cell_click('E18_42');" id='E18_42'>&nbsp;</td></tr>
+      <tr><th class=u>41</th><td title='E18_41' onclick="table_cell_click('E18_41');" id='E18_41'>&nbsp;</td></tr>
+      <tr><th class=u>40</th><td title='E18_40' onclick="table_cell_click('E18_40');" id='E18_40'>&nbsp;</td></tr>
+      <tr><th class=u>39</th><td title='E18_39' onclick="table_cell_click('E18_39');" id='E18_39'>&nbsp;</td></tr>
+      <tr><th class=u>38</th><td title='E18_38' onclick="table_cell_click('E18_38');" id='E18_38'>&nbsp;</td></tr>
+      <tr><th class=u>37</th><td title='E18_37' onclick="table_cell_click('E18_37');" id='E18_37'>&nbsp;</td></tr>
+      <tr><th class=u>36</th><td title='E18_36' onclick="table_cell_click('E18_36');" id='E18_36'>&nbsp;</td></tr>
+      <tr><th class=u>35</th><td title='E18_35' onclick="table_cell_click('E18_35');" id='E18_35'>&nbsp;</td></tr>
+      <tr><th class=u>34</th><td title='E18_34' onclick="table_cell_click('E18_34');" id='E18_34'>&nbsp;</td></tr>
+      <tr><th class=u>33</th><td title='E18_33' onclick="table_cell_click('E18_33');" id='E18_33'>&nbsp;</td>
+			<th class=u>5</th><th class=u>6</th></tr>
+	  </tr>
+      <tr><th class=u>32</th><td title='E18_32' onclick="table_cell_click('E18_32');" id='E18_32'>&nbsp;</td>
+	      <td class=v rowspan="10" title='E18_B_5' id='E18_B_5'>&nbsp;</td> 
+	      <td class=v rowspan="10" title='E18_B_6' id='E18_B_6'>&nbsp;</td>
+	  </tr>
+      <tr><th class=u>31</th><td title='E18_31' onclick="table_cell_click('E18_31');" id='E18_31'>&nbsp;</td></tr>
+      <tr><th class=u>30</th><td title='E18_30' onclick="table_cell_click('E18_30');" id='E18_30'>&nbsp;</td></tr>
+      <tr><th class=u>29</th><td title='E18_29' onclick="table_cell_click('E18_29');" id='E18_29'>&nbsp;</td></tr>
+      <tr><th class=u>28</th><td title='E18_28' onclick="table_cell_click('E18_28');" id='E18_28'>&nbsp;</td></tr>
+      <tr><th class=u>27</th><td title='E18_27' onclick="table_cell_click('E18_27');" id='E18_27'>&nbsp;</td></tr>
+      <tr><th class=u>26</th><td title='E18_26' onclick="table_cell_click('E18_26');" id='E18_26'>&nbsp;</td></tr>
+      <tr><th class=u>25</th><td title='E18_25' onclick="table_cell_click('E18_25');" id='E18_25'>&nbsp;</td></tr>
+      <tr><th class=u>24</th><td title='E18_24' onclick="table_cell_click('E18_24');" id='E18_24'>&nbsp;</td></tr>
+      <tr><th class=u>23</th><td title='E18_23' onclick="table_cell_click('E18_23');" id='E18_23'>&nbsp;</td></tr>
+      <tr><th class=u>22</th><td title='E18_22' onclick="table_cell_click('E18_22');" id='E18_22'>&nbsp;</td>
+	      <th class=u>3</th><th class=u>4</th>
+	  </tr>
+      <tr><th class=u>21</th><td title='E18_21' onclick="table_cell_click('E18_21');" id='E18_21'>&nbsp;</td>
+	      <td class=v rowspan="10" title='E18_B_3' id='E18_B_3'>&nbsp;</td> 
+	      <td class=v rowspan="10" title='E18_B_4' id='E18_B_4'>&nbsp;</td>
+	  </tr>
+      <tr><th class=u>20</th><td title='E18_20' onclick="table_cell_click('E18_20');" id='E18_20'>&nbsp;</td></tr>
+      <tr><th class=u>19</th><td title='E18_19' onclick="table_cell_click('E18_19');" id='E18_19'>&nbsp;</td></tr>
+      <tr><th class=u>18</th><td title='E18_18' onclick="table_cell_click('E18_18');" id='E18_18'>&nbsp;</td></tr>
+      <tr><th class=u>17</th><td title='E18_17' onclick="table_cell_click('E18_17');" id='E18_17'>&nbsp;</td></tr>
+      <tr><th class=u>16</th><td title='E18_16' onclick="table_cell_click('E18_16');" id='E18_16'>&nbsp;</td></tr>
+      <tr><th class=u>15</th><td title='E18_15' onclick="table_cell_click('E18_15');" id='E18_15'>&nbsp;</td></tr>
+      <tr><th class=u>14</th><td title='E18_14' onclick="table_cell_click('E18_14');" id='E18_14'>&nbsp;</td></tr>
+      <tr><th class=u>13</th><td title='E18_13' onclick="table_cell_click('E18_13');" id='E18_13'>&nbsp;</td></tr>
+      <tr><th class=u>12</th><td title='E18_12' onclick="table_cell_click('E18_12');" id='E18_12'>&nbsp;</td></tr>
+      <tr><th class=u>11</th><td title='E18_11' onclick="table_cell_click('E18_11');" id='E18_11'>&nbsp;</td>
+	      <th class=u>1</th><th class=u>2</th>
+	  </tr>
+      <tr><th class=u>10</th><td title='E18_10' onclick="table_cell_click('E18_10');" id='E18_10'>&nbsp;</td>
+	      <td class=v rowspan="10" title='E18_B_1' id='E18_B_1'>&nbsp;</td> 
+	      <td class=v rowspan="10" title='E18_B_2' id='E18_B_2'>&nbsp;</td>
+	  </tr>
+      <tr><th class=u>9</th><td title='E18_9' onclick="table_cell_click('E18_9');" id='E18_9'>&nbsp;</td></tr>
+      <tr><th class=u>8</th><td title='E18_8' onclick="table_cell_click('E18_8');" id='E18_8'>&nbsp;</td></tr>
+      <tr><th class=u>7</th><td title='E18_7' onclick="table_cell_click('E18_7');" id='E18_7'>&nbsp;</td></tr>
+      <tr><th class=u>6</th><td title='E18_6' onclick="table_cell_click('E18_6');" id='E18_6'>&nbsp;</td></tr>
+      <tr><th class=u>5</th><td title='E18_5' onclick="table_cell_click('E18_5');" id='E18_5'>&nbsp;</td></tr>
+      <tr><th class=u>4</th><td title='E18_4' onclick="table_cell_click('E18_4');" id='E18_4'>&nbsp;</td></tr>
+      <tr><th class=u>3</th><td title='E18_3' onclick="table_cell_click('E18_3');" id='E18_3'>&nbsp;</td></tr>
+      <tr><th class=u>2</th><td title='E18_2' onclick="table_cell_click('E18_2');" id='E18_2'>&nbsp;</td></tr>
+      <tr><th class=u>1</th><td title='E18_1' onclick="table_cell_click('E18_1');" id='E18_1'>&nbsp;</td></tr>
+    </table></td>
+    <td><table id='D18' class=rack><tr><th>&nbsp;</th><th>D18</th><th colspan="2">D</th></tr>
+      <tr><th class=u>43</th><td title='D18_43' onclick="table_cell_click('D18_43');" id='D18_43'>&nbsp;</td>
+	  	<td class=v rowspan="10" title='D18_D_7' id='D18_D_7'>&nbsp;</td> 
+	  	<td class=v rowspan="10" title='D18_D_8' id='D18_D_8'>&nbsp;</td>
+	  </tr>
+      <tr><th class=u>42</th><td title='D18_42' onclick="table_cell_click('D18_42');" id='D18_42'>&nbsp;</td></tr>
+      <tr><th class=u>41</th><td title='D18_41' onclick="table_cell_click('D18_41');" id='D18_41'>&nbsp;</td></tr>
+      <tr><th class=u>40</th><td title='D18_40' onclick="table_cell_click('D18_40');" id='D18_40'>&nbsp;</td></tr>
+      <tr><th class=u>39</th><td title='D18_39' onclick="table_cell_click('D18_39');" id='D18_39'>&nbsp;</td></tr>
+      <tr><th class=u>38</th><td title='D18_38' onclick="table_cell_click('D18_38');" id='D18_38'>&nbsp;</td></tr>
+      <tr><th class=u>37</th><td title='D18_37' onclick="table_cell_click('D18_37');" id='D18_37'>&nbsp;</td></tr>
+      <tr><th class=u>36</th><td title='D18_36' onclick="table_cell_click('D18_36');" id='D18_36'>&nbsp;</td></tr>
+      <tr><th class=u>35</th><td title='D18_35' onclick="table_cell_click('D18_35');" id='D18_35'>&nbsp;</td></tr>
+      <tr><th class=u>34</th><td title='D18_34' onclick="table_cell_click('D18_34');" id='D18_34'>&nbsp;</td></tr>
+      <tr><th class=u>33</th><td title='D18_33' onclick="table_cell_click('D18_33');" id='D18_33'>&nbsp;</td>
+			<th class=u>5</th><th class=u>6</th></tr>
+	  </tr>
+      <tr><th class=u>32</th><td title='D18_32' onclick="table_cell_click('D18_32');" id='D18_32'>&nbsp;</td>
+	      <td class=v rowspan="10" title='D18_D_5' id='D18_D_5'>&nbsp;</td> 
+	      <td class=v rowspan="10" title='D18_D_6' id='D18_D_6'>&nbsp;</td>
+	  </tr>
+      <tr><th class=u>31</th><td title='D18_31' onclick="table_cell_click('D18_31');" id='D18_31'>&nbsp;</td></tr>
+      <tr><th class=u>30</th><td title='D18_30' onclick="table_cell_click('D18_30');" id='D18_30'>&nbsp;</td></tr>
+      <tr><th class=u>29</th><td title='D18_29' onclick="table_cell_click('D18_29');" id='D18_29'>&nbsp;</td></tr>
+      <tr><th class=u>28</th><td title='D18_28' onclick="table_cell_click('D18_28');" id='D18_28'>&nbsp;</td></tr>
+      <tr><th class=u>27</th><td title='D18_27' onclick="table_cell_click('D18_27');" id='D18_27'>&nbsp;</td></tr>
+      <tr><th class=u>26</th><td title='D18_26' onclick="table_cell_click('D18_26');" id='D18_26'>&nbsp;</td></tr>
+      <tr><th class=u>25</th><td title='D18_25' onclick="table_cell_click('D18_25');" id='D18_25'>&nbsp;</td></tr>
+      <tr><th class=u>24</th><td title='D18_24' onclick="table_cell_click('D18_24');" id='D18_24'>&nbsp;</td></tr>
+      <tr><th class=u>23</th><td title='D18_23' onclick="table_cell_click('D18_23');" id='D18_23'>&nbsp;</td></tr>
+      <tr><th class=u>22</th><td title='D18_22' onclick="table_cell_click('D18_22');" id='D18_22'>&nbsp;</td>
+	      <th class=u>3</th><th class=u>4</th>
+	  </tr>
+      <tr><th class=u>21</th><td title='D18_21' onclick="table_cell_click('D18_21');" id='D18_21'>&nbsp;</td>
+	      <td class=v rowspan="10" title='D18_D_3' id='D18_D_3'>&nbsp;</td> 
+	      <td class=v rowspan="10" title='D18_D_4' id='D18_D_4'>&nbsp;</td>
+	  </tr>
+      <tr><th class=u>20</th><td title='D18_20' onclick="table_cell_click('D18_20');" id='D18_20'>&nbsp;</td></tr>
+      <tr><th class=u>19</th><td title='D18_19' onclick="table_cell_click('D18_19');" id='D18_19'>&nbsp;</td></tr>
+      <tr><th class=u>18</th><td title='D18_18' onclick="table_cell_click('D18_18');" id='D18_18'>&nbsp;</td></tr>
+      <tr><th class=u>17</th><td title='D18_17' onclick="table_cell_click('D18_17');" id='D18_17'>&nbsp;</td></tr>
+      <tr><th class=u>16</th><td title='D18_16' onclick="table_cell_click('D18_16');" id='D18_16'>&nbsp;</td></tr>
+      <tr><th class=u>15</th><td title='D18_15' onclick="table_cell_click('D18_15');" id='D18_15'>&nbsp;</td></tr>
+      <tr><th class=u>14</th><td title='D18_14' onclick="table_cell_click('D18_14');" id='D18_14'>&nbsp;</td></tr>
+      <tr><th class=u>13</th><td title='D18_13' onclick="table_cell_click('D18_13');" id='D18_13'>&nbsp;</td></tr>
+      <tr><th class=u>12</th><td title='D18_12' onclick="table_cell_click('D18_12');" id='D18_12'>&nbsp;</td></tr>
+      <tr><th class=u>11</th><td title='D18_11' onclick="table_cell_click('D18_11');" id='D18_11'>&nbsp;</td>
+	      <th class=u>1</th><th class=u>2</th>
+	  </tr>
+      <tr><th class=u>10</th><td title='D18_10' onclick="table_cell_click('D18_10');" id='D18_10'>&nbsp;</td>
+	      <td class=v rowspan="10" title='D18_D_1' id='D18_D_1'>&nbsp;</td> 
+	      <td class=v rowspan="10" title='D18_D_2' id='D18_D_2'>&nbsp;</td>
+	  </tr>
+      <tr><th class=u>9</th><td title='D18_9' onclick="table_cell_click('D18_9');" id='D18_9'>&nbsp;</td></tr>
+      <tr><th class=u>8</th><td title='D18_8' onclick="table_cell_click('D18_8');" id='D18_8'>&nbsp;</td></tr>
+      <tr><th class=u>7</th><td title='D18_7' onclick="table_cell_click('D18_7');" id='D18_7'>&nbsp;</td></tr>
+      <tr><th class=u>6</th><td title='D18_6' onclick="table_cell_click('D18_6');" id='D18_6'>&nbsp;</td></tr>
+      <tr><th class=u>5</th><td title='D18_5' onclick="table_cell_click('D18_5');" id='D18_5'>&nbsp;</td></tr>
+      <tr><th class=u>4</th><td title='D18_4' onclick="table_cell_click('D18_4');" id='D18_4'>&nbsp;</td></tr>
+      <tr><th class=u>3</th><td title='D18_3' onclick="table_cell_click('D18_3');" id='D18_3'>&nbsp;</td></tr>
+      <tr><th class=u>2</th><td title='D18_2' onclick="table_cell_click('D18_2');" id='D18_2'>&nbsp;</td></tr>
+      <tr><th class=u>1</th><td title='D18_1' onclick="table_cell_click('D18_1');" id='D18_1'>&nbsp;</td></tr>
+    </table></td>
+    <td><table id='B18' class=rack><tr><th>&nbsp;</th><th colspan="3">B18</th></tr>
+      <tr><th class=u>43</th>
+	      <th class=u>&nbsp;</th>
+	      <td title='B18_43' onclick="table_cell_click('B18_43');" id='B18_43'>&nbsp;</td>
+	      <th class=u>&nbsp;</th>
+	  </tr>
+      <tr><th class=u>42</th>
+	      <th class=u>&nbsp;</th>
+	      <td title='B18_42' onclick="table_cell_click('B18_42');" id='B18_42'>&nbsp;</td>
+	      <th class=u>&nbsp;</th>
+	  </tr>
+      <tr><th class=u>41</th>
+	      <td class=v rowspan="10">&nbsp;</td>
+	      <td title='B18_41' onclick="table_cell_click('B18_41');" id='B18_41'>&nbsp;</td>
+	      <td class=v rowspan="10">&nbsp;</td>
+	  </tr>
+      <tr><th class=u>40</th><td title='B18_40' onclick="table_cell_click('B18_40');" id='B18_40'>&nbsp;</td></tr>
+      <tr><th class=u>39</th><td title='B18_39' onclick="table_cell_click('B18_39');" id='B18_39'>&nbsp;</td></tr>
+      <tr><th class=u>38</th><td title='B18_38' onclick="table_cell_click('B18_38');" id='B18_38'>&nbsp;</td></tr>
+      <tr><th class=u>37</th><td title='B18_37' onclick="table_cell_click('B18_37');" id='B18_37'>&nbsp;</td></tr>
+      <tr><th class=u>36</th><td title='B18_36' onclick="table_cell_click('B18_36');" id='B18_36'>&nbsp;</td></tr>
+      <tr><th class=u>35</th><td title='B18_35' onclick="table_cell_click('B18_35');" id='B18_35'>&nbsp;</td></tr>
+      <tr><th class=u>34</th><td title='B18_34' onclick="table_cell_click('B18_34');" id='B18_34'>&nbsp;</td></tr>
+      <tr><th class=u>33</th><td title='B18_33' onclick="table_cell_click('B18_33');" id='B18_33'>&nbsp;</td></tr>
+      <tr><th class=u>32</th><td title='B18_32' onclick="table_cell_click('B18_32');" id='B18_32'>&nbsp;</td></tr>
+      <tr><th class=u>31</th>
+	     <th class=u>A</th>
+	     <td title='B18_31' onclick="table_cell_click('B18_31');" id='B18_31'>&nbsp;</td>
+	     <th class=u>B</th>
+	  </tr>
+      <tr><th class=u>30</th>
+	      <td class=v rowspan="10" title='B18_A_1' id='B18_A_1'>&nbsp;</td>
+	      <td title='B18_30' onclick="table_cell_click('B18_30');" id='B18_30'>&nbsp;</td>
+	      <td class=v rowspan="10" title='B18_B_1' id='B18_B_1'>&nbsp;</td>
+	  </tr>
+      <tr><th class=u>29</th><td title='B18_29' onclick="table_cell_click('B18_29');" id='B18_29'>&nbsp;</td></tr>
+      <tr><th class=u>28</th><td title='B18_28' onclick="table_cell_click('B18_28');" id='B18_28'>&nbsp;</td></tr>
+      <tr><th class=u>27</th><td title='B18_27' onclick="table_cell_click('B18_27');" id='B18_27'>&nbsp;</td></tr>
+      <tr><th class=u>26</th><td title='B18_26' onclick="table_cell_click('B18_26');" id='B18_26'>&nbsp;</td></tr>
+      <tr><th class=u>25</th><td title='B18_25' onclick="table_cell_click('B18_25');" id='B18_25'>&nbsp;</td></tr>
+      <tr><th class=u>24</th><td title='B18_24' onclick="table_cell_click('B18_24');" id='B18_24'>&nbsp;</td></tr>
+      <tr><th class=u>23</th><td title='B18_23' onclick="table_cell_click('B18_23');" id='B18_23'>&nbsp;</td></tr>
+      <tr><th class=u>22</th><td title='B18_22' onclick="table_cell_click('B18_22');" id='B18_22'>&nbsp;</td></tr>
+      <tr><th class=u>21</th><td title='B18_21' onclick="table_cell_click('B18_21');" id='B18_21'>&nbsp;</td></tr>
+      <tr><th class=u>20</th>
+	      <td class=v4 rowspan="4">&nbsp;</td>
+	      <td title='B18_20' onclick="table_cell_click('B18_20');" id='B18_20'>&nbsp;</td>
+	      <td class=v4 rowspan="4">&nbsp;</td>
+	  </tr>
+      <tr><th class=u>19</th><td title='B18_19' onclick="table_cell_click('B18_19');" id='B18_19'>&nbsp;</td></tr>
+      <tr><th class=u>18</th><td title='B18_18' onclick="table_cell_click('B18_18');" id='B18_18'>&nbsp;</td></tr>
+      <tr><th class=u>17</th><td title='B18_17' onclick="table_cell_click('B18_17');" id='B18_17'>&nbsp;</td></tr>
+      <tr><th class=u>16</th>
+	      <th class=u>C</th>
+	      <td title='B18_16' onclick="table_cell_click('B18_16');" id='B18_16'>&nbsp;</td>
+	      <th class=u>D</th>
+	  </tr>
+      <tr><th class=u>15</th>
+	      <td class=v rowspan="10" title='B18_C_1' id='B18_C_1'>&nbsp;</td>
+	      <td title='B18_15' onclick="table_cell_click('B18_15');" id='B18_15'>&nbsp;</td>
+	      <td class=v rowspan="10" title='B18_D_1' id='B18_D_1'>&nbsp;</td>
+	  </tr>
+      <tr><th class=u>14</th><td title='B18_14' onclick="table_cell_click('B18_14');" id='B18_14'>&nbsp;</td></tr>
+      <tr><th class=u>13</th><td title='B18_13' onclick="table_cell_click('B18_13');" id='B18_13'>&nbsp;</td></tr>
+      <tr><th class=u>12</th><td title='B18_12' onclick="table_cell_click('B18_12');" id='B18_12'>&nbsp;</td></tr>
+      <tr><th class=u>11</th><td title='B18_11' onclick="table_cell_click('B18_11');" id='B18_11'>&nbsp;</td></tr>
+      <tr><th class=u>10</th><td title='B18_10' onclick="table_cell_click('B18_10');" id='B18_10'>&nbsp;</td></tr>
+      <tr><th class=u>9</th><td title='B18_9' onclick="table_cell_click('B18_9');" id='B18_9'>&nbsp;</td></tr>
+      <tr><th class=u>8</th><td title='B18_8' onclick="table_cell_click('B18_8');" id='B18_8'>&nbsp;</td></tr>
+      <tr><th class=u>7</th><td title='B18_7' onclick="table_cell_click('B18_7');" id='B18_7'>&nbsp;</td></tr>
+      <tr><th class=u>6</th><td title='B18_6' onclick="table_cell_click('B18_6');" id='B18_6'>&nbsp;</td></tr>
+      <tr><th class=u>5</th>
+	      <td class=v5 rowspan="5">&nbsp;</td>
+	      <td title='B18_5' onclick="table_cell_click('B18_5');" id='B18_5'>&nbsp;</td>
+	      <td class=v5 rowspan="5">&nbsp;</td>
+	  </tr>
+      <tr><th class=u>4</th><td title='B18_4' onclick="table_cell_click('B18_4');" id='B18_4'>&nbsp;</td></tr>
+      <tr><th class=u>3</th><td title='B18_3' onclick="table_cell_click('B18_3');" id='B18_3'>&nbsp;</td></tr>
+      <tr><th class=u>2</th><td title='B18_2' onclick="table_cell_click('B18_2');" id='B18_2'>&nbsp;</td></tr>
+      <tr><th class=u>1</th><td title='B18_1' onclick="table_cell_click('B18_1');" id='B18_1'>&nbsp;</td></tr>
+    </table></td>
+<td width="12px">&nbsp;</td>
+  <td><table id='B15' class=rack><tr><th>&nbsp;</th><th colspan="3">B15</th></tr>
+    <tr><th class=u>43</th>
+      <th class=u>&nbsp;</th>
+      <td title='B15_43' onclick="table_cell_click('B15_43');" id='B15_43'>&nbsp;</td>
+      <th class=u>&nbsp;</th>
+  </tr>
+    <tr><th class=u>42</th>
+      <th class=u>&nbsp;</th>
+      <td title='B15_42' onclick="table_cell_click('B15_42');" id='B15_42'>&nbsp;</td>
+      <th class=u>&nbsp;</th>
+  </tr>
+    <tr><th class=u>41</th>
+      <td class=v rowspan="10">&nbsp;</td>
+      <td title='B15_41' onclick="table_cell_click('B15_41');" id='B15_41'>&nbsp;</td>
+      <td class=v rowspan="10">&nbsp;</td>
+  </tr>
+    <tr><th class=u>40</th><td title='B15_40' onclick="table_cell_click('B15_40');" id='B15_40'>&nbsp;</td></tr>
+    <tr><th class=u>39</th><td title='B15_39' onclick="table_cell_click('B15_39');" id='B15_39'>&nbsp;</td></tr>
+    <tr><th class=u>38</th><td title='B15_38' onclick="table_cell_click('B15_38');" id='B15_38'>&nbsp;</td></tr>
+    <tr><th class=u>37</th><td title='B15_37' onclick="table_cell_click('B15_37');" id='B15_37'>&nbsp;</td></tr>
+    <tr><th class=u>36</th><td title='B15_36' onclick="table_cell_click('B15_36');" id='B15_36'>&nbsp;</td></tr>
+    <tr><th class=u>35</th><td title='B15_35' onclick="table_cell_click('B15_35');" id='B15_35'>&nbsp;</td></tr>
+    <tr><th class=u>34</th><td title='B15_34' onclick="table_cell_click('B15_34');" id='B15_34'>&nbsp;</td></tr>
+    <tr><th class=u>33</th><td title='B15_33' onclick="table_cell_click('B15_33');" id='B15_33'>&nbsp;</td></tr>
+    <tr><th class=u>32</th><td title='B15_32' onclick="table_cell_click('B15_32');" id='B15_32'>&nbsp;</td></tr>
+    <tr><th class=u>31</th>
+     <th class=u>A</th>
+     <td title='B15_31' onclick="table_cell_click('B15_31');" id='B15_31'>&nbsp;</td>
+     <th class=u>B</th>
+  </tr>
+    <tr><th class=u>30</th>
+      <td class=v rowspan="10" title='B15_A_1' id='B15_A_1'>&nbsp;</td>
+      <td title='B15_30' onclick="table_cell_click('B15_30');" id='B15_30'>&nbsp;</td>
+      <td class=v rowspan="10" title='B15_B_1' id='B15_B_1'>&nbsp;</td>
+  </tr>
+    <tr><th class=u>29</th><td title='B15_29' onclick="table_cell_click('B15_29');" id='B15_29'>&nbsp;</td></tr>
+    <tr><th class=u>28</th><td title='B15_28' onclick="table_cell_click('B15_28');" id='B15_28'>&nbsp;</td></tr>
+    <tr><th class=u>27</th><td title='B15_27' onclick="table_cell_click('B15_27');" id='B15_27'>&nbsp;</td></tr>
+    <tr><th class=u>26</th><td title='B15_26' onclick="table_cell_click('B15_26');" id='B15_26'>&nbsp;</td></tr>
+    <tr><th class=u>25</th><td title='B15_25' onclick="table_cell_click('B15_25');" id='B15_25'>&nbsp;</td></tr>
+    <tr><th class=u>24</th><td title='B15_24' onclick="table_cell_click('B15_24');" id='B15_24'>&nbsp;</td></tr>
+    <tr><th class=u>23</th><td title='B15_23' onclick="table_cell_click('B15_23');" id='B15_23'>&nbsp;</td></tr>
+    <tr><th class=u>22</th><td title='B15_22' onclick="table_cell_click('B15_22');" id='B15_22'>&nbsp;</td></tr>
+    <tr><th class=u>21</th><td title='B15_21' onclick="table_cell_click('B15_21');" id='B15_21'>&nbsp;</td></tr>
+    <tr><th class=u>20</th>
+      <td class=v4 rowspan="4">&nbsp;</td>
+      <td title='B15_20' onclick="table_cell_click('B15_20');" id='B15_20'>&nbsp;</td>
+      <td class=v4 rowspan="4">&nbsp;</td>
+  </tr>
+    <tr><th class=u>19</th><td title='B15_19' onclick="table_cell_click('B15_19');" id='B15_19'>&nbsp;</td></tr>
+    <tr><th class=u>18</th><td title='B15_18' onclick="table_cell_click('B15_18');" id='B15_18'>&nbsp;</td></tr>
+    <tr><th class=u>17</th><td title='B15_17' onclick="table_cell_click('B15_17');" id='B15_17'>&nbsp;</td></tr>
+    <tr><th class=u>16</th>
+      <th class=u>C</th>
+      <td title='B15_16' onclick="table_cell_click('B15_16');" id='B15_16'>&nbsp;</td>
+      <th class=u>D</th>
+  </tr>
+    <tr><th class=u>15</th>
+      <td class=v rowspan="10" title='B15_C_1' id='B15_C_1'>&nbsp;</td>
+      <td title='B15_15' onclick="table_cell_click('B15_15');" id='B15_15'>&nbsp;</td>
+      <td class=v rowspan="10" title='B15_D_1' id='B15_D_1'>&nbsp;</td>
+  </tr>
+    <tr><th class=u>14</th><td title='B15_14' onclick="table_cell_click('B15_14');" id='B15_14'>&nbsp;</td></tr>
+    <tr><th class=u>13</th><td title='B15_13' onclick="table_cell_click('B15_13');" id='B15_13'>&nbsp;</td></tr>
+    <tr><th class=u>12</th><td title='B15_12' onclick="table_cell_click('B15_12');" id='B15_12'>&nbsp;</td></tr>
+    <tr><th class=u>11</th><td title='B15_11' onclick="table_cell_click('B15_11');" id='B15_11'>&nbsp;</td></tr>
+    <tr><th class=u>10</th><td title='B15_10' onclick="table_cell_click('B15_10');" id='B15_10'>&nbsp;</td></tr>
+    <tr><th class=u>9</th><td title='B15_9' onclick="table_cell_click('B15_9');" id='B15_9'>&nbsp;</td></tr>
+    <tr><th class=u>8</th><td title='B15_8' onclick="table_cell_click('B15_8');" id='B15_8'>&nbsp;</td></tr>
+    <tr><th class=u>7</th><td title='B15_7' onclick="table_cell_click('B15_7');" id='B15_7'>&nbsp;</td></tr>
+    <tr><th class=u>6</th><td title='B15_6' onclick="table_cell_click('B15_6');" id='B15_6'>&nbsp;</td></tr>
+    <tr><th class=u>5</th>
+      <td class=v5 rowspan="5">&nbsp;</td>
+      <td title='B15_5' onclick="table_cell_click('B15_5');" id='B15_5'>&nbsp;</td>
+      <td class=v5 rowspan="5">&nbsp;</td>
+  </tr>
+    <tr><th class=u>4</th><td title='B15_4' onclick="table_cell_click('B15_4');" id='B15_4'>&nbsp;</td></tr>
+    <tr><th class=u>3</th><td title='B15_3' onclick="table_cell_click('B15_3');" id='B15_3'>&nbsp;</td></tr>
+    <tr><th class=u>2</th><td title='B15_2' onclick="table_cell_click('B15_2');" id='B15_2'>&nbsp;</td></tr>
+    <tr><th class=u>1</th><td title='B15_1' onclick="table_cell_click('B15_1');" id='B15_1'>&nbsp;</td></tr>
+  </table></td>
+    <td><table id='D15' class=rack><tr><th>&nbsp;</th><th>D15</th><th colspan="2">B</th></tr>
+      <tr><th class=u>43</th><td title='D15_43' onclick="table_cell_click('D15_43');" id='D15_43'>&nbsp;</td>
+	  	<td class=v rowspan="10" title='D15_B_7' id='D15_B_7'>&nbsp;</td> 
+	  	<td class=v rowspan="10" title='D15_B_8' id='D15_B_8'>&nbsp;</td>
+	  </tr>
+      <tr><th class=u>42</th><td title='D15_42' onclick="table_cell_click('D15_42');" id='D15_42'>&nbsp;</td></tr>
+      <tr><th class=u>41</th><td title='D15_41' onclick="table_cell_click('D15_41');" id='D15_41'>&nbsp;</td></tr>
+      <tr><th class=u>40</th><td title='D15_40' onclick="table_cell_click('D15_40');" id='D15_40'>&nbsp;</td></tr>
+      <tr><th class=u>39</th><td title='D15_39' onclick="table_cell_click('D15_39');" id='D15_39'>&nbsp;</td></tr>
+      <tr><th class=u>38</th><td title='D15_38' onclick="table_cell_click('D15_38');" id='D15_38'>&nbsp;</td></tr>
+      <tr><th class=u>37</th><td title='D15_37' onclick="table_cell_click('D15_37');" id='D15_37'>&nbsp;</td></tr>
+      <tr><th class=u>36</th><td title='D15_36' onclick="table_cell_click('D15_36');" id='D15_36'>&nbsp;</td></tr>
+      <tr><th class=u>35</th><td title='D15_35' onclick="table_cell_click('D15_35');" id='D15_35'>&nbsp;</td></tr>
+      <tr><th class=u>34</th><td title='D15_34' onclick="table_cell_click('D15_34');" id='D15_34'>&nbsp;</td></tr>
+      <tr><th class=u>33</th><td title='D15_33' onclick="table_cell_click('D15_33');" id='D15_33'>&nbsp;</td>
+			<th class=u>5</th><th class=u>6</th></tr>
+	  </tr>
+      <tr><th class=u>32</th><td title='D15_32' onclick="table_cell_click('D15_32');" id='D15_32'>&nbsp;</td>
+	      <td class=v rowspan="10" title='D15_B_5' id='D15_B_5'>&nbsp;</td> 
+	      <td class=v rowspan="10" title='D15_B_6' id='D15_B_6'>&nbsp;</td>
+	  </tr>
+      <tr><th class=u>31</th><td title='D15_31' onclick="table_cell_click('D15_31');" id='D15_31'>&nbsp;</td></tr>
+      <tr><th class=u>30</th><td title='D15_30' onclick="table_cell_click('D15_30');" id='D15_30'>&nbsp;</td></tr>
+      <tr><th class=u>29</th><td title='D15_29' onclick="table_cell_click('D15_29');" id='D15_29'>&nbsp;</td></tr>
+      <tr><th class=u>28</th><td title='D15_28' onclick="table_cell_click('D15_28');" id='D15_28'>&nbsp;</td></tr>
+      <tr><th class=u>27</th><td title='D15_27' onclick="table_cell_click('D15_27');" id='D15_27'>&nbsp;</td></tr>
+      <tr><th class=u>26</th><td title='D15_26' onclick="table_cell_click('D15_26');" id='D15_26'>&nbsp;</td></tr>
+      <tr><th class=u>25</th><td title='D15_25' onclick="table_cell_click('D15_25');" id='D15_25'>&nbsp;</td></tr>
+      <tr><th class=u>24</th><td title='D15_24' onclick="table_cell_click('D15_24');" id='D15_24'>&nbsp;</td></tr>
+      <tr><th class=u>23</th><td title='D15_23' onclick="table_cell_click('D15_23');" id='D15_23'>&nbsp;</td></tr>
+      <tr><th class=u>22</th><td title='D15_22' onclick="table_cell_click('D15_22');" id='D15_22'>&nbsp;</td>
+	      <th class=u>3</th><th class=u>4</th>
+	  </tr>
+      <tr><th class=u>21</th><td title='D15_21' onclick="table_cell_click('D15_21');" id='D15_21'>&nbsp;</td>
+	      <td class=v rowspan="10" title='D15_B_3' id='D15_B_3'>&nbsp;</td> 
+	      <td class=v rowspan="10" title='D15_B_4' id='D15_B_4'>&nbsp;</td>
+	  </tr>
+      <tr><th class=u>20</th><td title='D15_20' onclick="table_cell_click('D15_20');" id='D15_20'>&nbsp;</td></tr>
+      <tr><th class=u>19</th><td title='D15_19' onclick="table_cell_click('D15_19');" id='D15_19'>&nbsp;</td></tr>
+      <tr><th class=u>18</th><td title='D15_18' onclick="table_cell_click('D15_18');" id='D15_18'>&nbsp;</td></tr>
+      <tr><th class=u>17</th><td title='D15_17' onclick="table_cell_click('D15_17');" id='D15_17'>&nbsp;</td></tr>
+      <tr><th class=u>16</th><td title='D15_16' onclick="table_cell_click('D15_16');" id='D15_16'>&nbsp;</td></tr>
+      <tr><th class=u>15</th><td title='D15_15' onclick="table_cell_click('D15_15');" id='D15_15'>&nbsp;</td></tr>
+      <tr><th class=u>14</th><td title='D15_14' onclick="table_cell_click('D15_14');" id='D15_14'>&nbsp;</td></tr>
+      <tr><th class=u>13</th><td title='D15_13' onclick="table_cell_click('D15_13');" id='D15_13'>&nbsp;</td></tr>
+      <tr><th class=u>12</th><td title='D15_12' onclick="table_cell_click('D15_12');" id='D15_12'>&nbsp;</td></tr>
+      <tr><th class=u>11</th><td title='D15_11' onclick="table_cell_click('D15_11');" id='D15_11'>&nbsp;</td>
+	      <th class=u>1</th><th class=u>2</th>
+	  </tr>
+      <tr><th class=u>10</th><td title='D15_10' onclick="table_cell_click('D15_10');" id='D15_10'>&nbsp;</td>
+	      <td class=v rowspan="10" title='D15_B_1' id='D15_B_1'>&nbsp;</td> 
+	      <td class=v rowspan="10" title='D15_B_2' id='D15_B_2'>&nbsp;</td>
+	  </tr>
+      <tr><th class=u>9</th><td title='D15_9' onclick="table_cell_click('D15_9');" id='D15_9'>&nbsp;</td></tr>
+      <tr><th class=u>8</th><td title='D15_8' onclick="table_cell_click('D15_8');" id='D15_8'>&nbsp;</td></tr>
+      <tr><th class=u>7</th><td title='D15_7' onclick="table_cell_click('D15_7');" id='D15_7'>&nbsp;</td></tr>
+      <tr><th class=u>6</th><td title='D15_6' onclick="table_cell_click('D15_6');" id='D15_6'>&nbsp;</td></tr>
+      <tr><th class=u>5</th><td title='D15_5' onclick="table_cell_click('D15_5');" id='D15_5'>&nbsp;</td></tr>
+      <tr><th class=u>4</th><td title='D15_4' onclick="table_cell_click('D15_4');" id='D15_4'>&nbsp;</td></tr>
+      <tr><th class=u>3</th><td title='D15_3' onclick="table_cell_click('D15_3');" id='D15_3'>&nbsp;</td></tr>
+      <tr><th class=u>2</th><td title='D15_2' onclick="table_cell_click('D15_2');" id='D15_2'>&nbsp;</td></tr>
+      <tr><th class=u>1</th><td title='D15_1' onclick="table_cell_click('D15_1');" id='D15_1'>&nbsp;</td></tr>
+    </table></td>
+    <td><table id='E15' class=rack><tr><th>&nbsp;</th><th>E15</th><th colspan="2">D</th></tr>
+      <tr><th class=u>43</th><td title='E15_43' onclick="table_cell_click('E15_43');" id='E15_43'>&nbsp;</td>
+	  	<td class=v rowspan="10" title='E15_D_7' id='E15_D_7'>&nbsp;</td> 
+	  	<td class=v rowspan="10" title='E15_D_8' id='E15_D_8'>&nbsp;</td>
+	  </tr>
+      <tr><th class=u>42</th><td title='E15_42' onclick="table_cell_click('E15_42');" id='E15_42'>&nbsp;</td></tr>
+      <tr><th class=u>41</th><td title='E15_41' onclick="table_cell_click('E15_41');" id='E15_41'>&nbsp;</td></tr>
+      <tr><th class=u>40</th><td title='E15_40' onclick="table_cell_click('E15_40');" id='E15_40'>&nbsp;</td></tr>
+      <tr><th class=u>39</th><td title='E15_39' onclick="table_cell_click('E15_39');" id='E15_39'>&nbsp;</td></tr>
+      <tr><th class=u>38</th><td title='E15_38' onclick="table_cell_click('E15_38');" id='E15_38'>&nbsp;</td></tr>
+      <tr><th class=u>37</th><td title='E15_37' onclick="table_cell_click('E15_37');" id='E15_37'>&nbsp;</td></tr>
+      <tr><th class=u>36</th><td title='E15_36' onclick="table_cell_click('E15_36');" id='E15_36'>&nbsp;</td></tr>
+      <tr><th class=u>35</th><td title='E15_35' onclick="table_cell_click('E15_35');" id='E15_35'>&nbsp;</td></tr>
+      <tr><th class=u>34</th><td title='E15_34' onclick="table_cell_click('E15_34');" id='E15_34'>&nbsp;</td></tr>
+      <tr><th class=u>33</th><td title='E15_33' onclick="table_cell_click('E15_33');" id='E15_33'>&nbsp;</td>
+			<th class=u>5</th><th class=u>6</th></tr>
+	  </tr>
+      <tr><th class=u>32</th><td title='E15_32' onclick="table_cell_click('E15_32');" id='E15_32'>&nbsp;</td>
+	      <td class=v rowspan="10" title='E15_D_5' id='E15_D_5'>&nbsp;</td> 
+	      <td class=v rowspan="10" title='E15_D_6' id='E15_D_6'>&nbsp;</td>
+	  </tr>
+      <tr><th class=u>31</th><td title='E15_31' onclick="table_cell_click('E15_31');" id='E15_31'>&nbsp;</td></tr>
+      <tr><th class=u>30</th><td title='E15_30' onclick="table_cell_click('E15_30');" id='E15_30'>&nbsp;</td></tr>
+      <tr><th class=u>29</th><td title='E15_29' onclick="table_cell_click('E15_29');" id='E15_29'>&nbsp;</td></tr>
+      <tr><th class=u>28</th><td title='E15_28' onclick="table_cell_click('E15_28');" id='E15_28'>&nbsp;</td></tr>
+      <tr><th class=u>27</th><td title='E15_27' onclick="table_cell_click('E15_27');" id='E15_27'>&nbsp;</td></tr>
+      <tr><th class=u>26</th><td title='E15_26' onclick="table_cell_click('E15_26');" id='E15_26'>&nbsp;</td></tr>
+      <tr><th class=u>25</th><td title='E15_25' onclick="table_cell_click('E15_25');" id='E15_25'>&nbsp;</td></tr>
+      <tr><th class=u>24</th><td title='E15_24' onclick="table_cell_click('E15_24');" id='E15_24'>&nbsp;</td></tr>
+      <tr><th class=u>23</th><td title='E15_23' onclick="table_cell_click('E15_23');" id='E15_23'>&nbsp;</td></tr>
+      <tr><th class=u>22</th><td title='E15_22' onclick="table_cell_click('E15_22');" id='E15_22'>&nbsp;</td>
+	      <th class=u>3</th><th class=u>4</th>
+	  </tr>
+      <tr><th class=u>21</th><td title='E15_21' onclick="table_cell_click('E15_21');" id='E15_21'>&nbsp;</td>
+	      <td class=v rowspan="10" title='E15_D_3' id='E15_D_3'>&nbsp;</td> 
+	      <td class=v rowspan="10" title='E15_D_4' id='E15_D_4'>&nbsp;</td>
+	  </tr>
+      <tr><th class=u>20</th><td title='E15_20' onclick="table_cell_click('E15_20');" id='E15_20'>&nbsp;</td></tr>
+      <tr><th class=u>19</th><td title='E15_19' onclick="table_cell_click('E15_19');" id='E15_19'>&nbsp;</td></tr>
+      <tr><th class=u>18</th><td title='E15_18' onclick="table_cell_click('E15_18');" id='E15_18'>&nbsp;</td></tr>
+      <tr><th class=u>17</th><td title='E15_17' onclick="table_cell_click('E15_17');" id='E15_17'>&nbsp;</td></tr>
+      <tr><th class=u>16</th><td title='E15_16' onclick="table_cell_click('E15_16');" id='E15_16'>&nbsp;</td></tr>
+      <tr><th class=u>15</th><td title='E15_15' onclick="table_cell_click('E15_15');" id='E15_15'>&nbsp;</td></tr>
+      <tr><th class=u>14</th><td title='E15_14' onclick="table_cell_click('E15_14');" id='E15_14'>&nbsp;</td></tr>
+      <tr><th class=u>13</th><td title='E15_13' onclick="table_cell_click('E15_13');" id='E15_13'>&nbsp;</td></tr>
+      <tr><th class=u>12</th><td title='E15_12' onclick="table_cell_click('E15_12');" id='E15_12'>&nbsp;</td></tr>
+      <tr><th class=u>11</th><td title='E15_11' onclick="table_cell_click('E15_11');" id='E15_11'>&nbsp;</td>
+	      <th class=u>1</th><th class=u>2</th>
+	  </tr>
+      <tr><th class=u>10</th><td title='E15_10' onclick="table_cell_click('E15_10');" id='E15_10'>&nbsp;</td>
+	      <td class=v rowspan="10" title='E15_D_1' id='E15_D_1'>&nbsp;</td> 
+	      <td class=v rowspan="10" title='E15_D_2' id='E15_D_2'>&nbsp;</td>
+	  </tr>
+      <tr><th class=u>9</th><td title='E15_9' onclick="table_cell_click('E15_9');" id='E15_9'>&nbsp;</td></tr>
+      <tr><th class=u>8</th><td title='E15_8' onclick="table_cell_click('E15_8');" id='E15_8'>&nbsp;</td></tr>
+      <tr><th class=u>7</th><td title='E15_7' onclick="table_cell_click('E15_7');" id='E15_7'>&nbsp;</td></tr>
+      <tr><th class=u>6</th><td title='E15_6' onclick="table_cell_click('E15_6');" id='E15_6'>&nbsp;</td></tr>
+      <tr><th class=u>5</th><td title='E15_5' onclick="table_cell_click('E15_5');" id='E15_5'>&nbsp;</td></tr>
+      <tr><th class=u>4</th><td title='E15_4' onclick="table_cell_click('E15_4');" id='E15_4'>&nbsp;</td></tr>
+      <tr><th class=u>3</th><td title='E15_3' onclick="table_cell_click('E15_3');" id='E15_3'>&nbsp;</td></tr>
+      <tr><th class=u>2</th><td title='E15_2' onclick="table_cell_click('E15_2');" id='E15_2'>&nbsp;</td></tr>
+      <tr><th class=u>1</th><td title='E15_1' onclick="table_cell_click('E15_1');" id='E15_1'>&nbsp;</td></tr>
+    </table></td>
+    <td><table id='G15' class=rack><tr><th>&nbsp;</th><th colspan="3">G15</th></tr>
+      <tr><th class=u>43</th>
+	      <th class=u>&nbsp;</th>
+	      <td title='G15_43' onclick="table_cell_click('G15_43');" id='G15_43'>&nbsp;</td>
+	      <th class=u>&nbsp;</th>
+	  </tr>
+      <tr><th class=u>42</th>
+	      <th class=u>&nbsp;</th>
+	      <td title='G15_42' onclick="table_cell_click('G15_42');" id='G15_42'>&nbsp;</td>
+	      <th class=u>&nbsp;</th>
+	  </tr>
+      <tr><th class=u>41</th>
+	      <td class=v rowspan="10">&nbsp;</td>
+	      <td title='G15_41' onclick="table_cell_click('G15_41');" id='G15_41'>&nbsp;</td>
+	      <td class=v rowspan="10">&nbsp;</td>
+	  </tr>
+      <tr><th class=u>40</th><td title='G15_40' onclick="table_cell_click('G15_40');" id='G15_40'>&nbsp;</td></tr>
+      <tr><th class=u>39</th><td title='G15_39' onclick="table_cell_click('G15_39');" id='G15_39'>&nbsp;</td></tr>
+      <tr><th class=u>38</th><td title='G15_38' onclick="table_cell_click('G15_38');" id='G15_38'>&nbsp;</td></tr>
+      <tr><th class=u>37</th><td title='G15_37' onclick="table_cell_click('G15_37');" id='G15_37'>&nbsp;</td></tr>
+      <tr><th class=u>36</th><td title='G15_36' onclick="table_cell_click('G15_36');" id='G15_36'>&nbsp;</td></tr>
+      <tr><th class=u>35</th><td title='G15_35' onclick="table_cell_click('G15_35');" id='G15_35'>&nbsp;</td></tr>
+      <tr><th class=u>34</th><td title='G15_34' onclick="table_cell_click('G15_34');" id='G15_34'>&nbsp;</td></tr>
+      <tr><th class=u>33</th><td title='G15_33' onclick="table_cell_click('G15_33');" id='G15_33'>&nbsp;</td></tr>
+      <tr><th class=u>32</th><td title='G15_32' onclick="table_cell_click('G15_32');" id='G15_32'>&nbsp;</td></tr>
+      <tr><th class=u>31</th>
+	     <th class=u>A</th>
+	     <td title='G15_31' onclick="table_cell_click('G15_31');" id='G15_31'>&nbsp;</td>
+	     <th class=u>B</th>
+	  </tr>
+      <tr><th class=u>30</th>
+	      <td class=v rowspan="10" title='G15_A_1' id='G15_A_1'>&nbsp;</td>
+	      <td title='G15_30' onclick="table_cell_click('G15_30');" id='G15_30'>&nbsp;</td>
+	      <td class=v rowspan="10" title='G15_B_1' id='G15_B_1'>&nbsp;</td>
+	  </tr>
+      <tr><th class=u>29</th><td title='G15_29' onclick="table_cell_click('G15_29');" id='G15_29'>&nbsp;</td></tr>
+      <tr><th class=u>28</th><td title='G15_28' onclick="table_cell_click('G15_28');" id='G15_28'>&nbsp;</td></tr>
+      <tr><th class=u>27</th><td title='G15_27' onclick="table_cell_click('G15_27');" id='G15_27'>&nbsp;</td></tr>
+      <tr><th class=u>26</th><td title='G15_26' onclick="table_cell_click('G15_26');" id='G15_26'>&nbsp;</td></tr>
+      <tr><th class=u>25</th><td title='G15_25' onclick="table_cell_click('G15_25');" id='G15_25'>&nbsp;</td></tr>
+      <tr><th class=u>24</th><td title='G15_24' onclick="table_cell_click('G15_24');" id='G15_24'>&nbsp;</td></tr>
+      <tr><th class=u>23</th><td title='G15_23' onclick="table_cell_click('G15_23');" id='G15_23'>&nbsp;</td></tr>
+      <tr><th class=u>22</th><td title='G15_22' onclick="table_cell_click('G15_22');" id='G15_22'>&nbsp;</td></tr>
+      <tr><th class=u>21</th><td title='G15_21' onclick="table_cell_click('G15_21');" id='G15_21'>&nbsp;</td></tr>
+      <tr><th class=u>20</th>
+	      <td class=v4 rowspan="4">&nbsp;</td>
+	      <td title='G15_20' onclick="table_cell_click('G15_20');" id='G15_20'>&nbsp;</td>
+	      <td class=v4 rowspan="4">&nbsp;</td>
+	  </tr>
+      <tr><th class=u>19</th><td title='G15_19' onclick="table_cell_click('G15_19');" id='G15_19'>&nbsp;</td></tr>
+      <tr><th class=u>18</th><td title='G15_18' onclick="table_cell_click('G15_18');" id='G15_18'>&nbsp;</td></tr>
+      <tr><th class=u>17</th><td title='G15_17' onclick="table_cell_click('G15_17');" id='G15_17'>&nbsp;</td></tr>
+      <tr><th class=u>16</th>
+	      <th class=u>C</th>
+	      <td title='G15_16' onclick="table_cell_click('G15_16');" id='G15_16'>&nbsp;</td>
+	      <th class=u>D</th>
+	  </tr>
+      <tr><th class=u>15</th>
+	      <td class=v rowspan="10" title='G15_C_1' id='G15_C_1'>&nbsp;</td>
+	      <td title='G15_15' onclick="table_cell_click('G15_15');" id='G15_15'>&nbsp;</td>
+	      <td class=v rowspan="10" title='G15_D_1' id='G15_D_1'>&nbsp;</td>
+	  </tr>
+      <tr><th class=u>14</th><td title='G15_14' onclick="table_cell_click('G15_14');" id='G15_14'>&nbsp;</td></tr>
+      <tr><th class=u>13</th><td title='G15_13' onclick="table_cell_click('G15_13');" id='G15_13'>&nbsp;</td></tr>
+      <tr><th class=u>12</th><td title='G15_12' onclick="table_cell_click('G15_12');" id='G15_12'>&nbsp;</td></tr>
+      <tr><th class=u>11</th><td title='G15_11' onclick="table_cell_click('G15_11');" id='G15_11'>&nbsp;</td></tr>
+      <tr><th class=u>10</th><td title='G15_10' onclick="table_cell_click('G15_10');" id='G15_10'>&nbsp;</td></tr>
+      <tr><th class=u>9</th><td title='G15_9' onclick="table_cell_click('G15_9');" id='G15_9'>&nbsp;</td></tr>
+      <tr><th class=u>8</th><td title='G15_8' onclick="table_cell_click('G15_8');" id='G15_8'>&nbsp;</td></tr>
+      <tr><th class=u>7</th><td title='G15_7' onclick="table_cell_click('G15_7');" id='G15_7'>&nbsp;</td></tr>
+      <tr><th class=u>6</th><td title='G15_6' onclick="table_cell_click('G15_6');" id='G15_6'>&nbsp;</td></tr>
+      <tr><th class=u>5</th>
+	      <td class=v5 rowspan="5">&nbsp;</td>
+	      <td title='G15_5' onclick="table_cell_click('G15_5');" id='G15_5'>&nbsp;</td>
+	      <td class=v5 rowspan="5">&nbsp;</td>
+	  </tr>
+      <tr><th class=u>4</th><td title='G15_4' onclick="table_cell_click('G15_4');" id='G15_4'>&nbsp;</td></tr>
+      <tr><th class=u>3</th><td title='G15_3' onclick="table_cell_click('G15_3');" id='G15_3'>&nbsp;</td></tr>
+      <tr><th class=u>2</th><td title='G15_2' onclick="table_cell_click('G15_2');" id='G15_2'>&nbsp;</td></tr>
+      <tr><th class=u>1</th><td title='G15_1' onclick="table_cell_click('G15_1');" id='G15_1'>&nbsp;</td></tr>
+    </table></td>
+    <td><table id='H15' class=rack><tr><th>&nbsp;</th><th>H15</th><th colspan="2">B</th></tr>
+      <tr><th class=u>43</th><td title='H15_43' onclick="table_cell_click('H15_43');" id='H15_43'>&nbsp;</td>
+	  	<td class=v rowspan="10" title='H15_B_7' id='H15_B_7'>&nbsp;</td> 
+	  	<td class=v rowspan="10" title='H15_B_8' id='H15_B_8'>&nbsp;</td>
+	  </tr>
+      <tr><th class=u>42</th><td title='H15_42' onclick="table_cell_click('H15_42');" id='H15_42'>&nbsp;</td></tr>
+      <tr><th class=u>41</th><td title='H15_41' onclick="table_cell_click('H15_41');" id='H15_41'>&nbsp;</td></tr>
+      <tr><th class=u>40</th><td title='H15_40' onclick="table_cell_click('H15_40');" id='H15_40'>&nbsp;</td></tr>
+      <tr><th class=u>39</th><td title='H15_39' onclick="table_cell_click('H15_39');" id='H15_39'>&nbsp;</td></tr>
+      <tr><th class=u>38</th><td title='H15_38' onclick="table_cell_click('H15_38');" id='H15_38'>&nbsp;</td></tr>
+      <tr><th class=u>37</th><td title='H15_37' onclick="table_cell_click('H15_37');" id='H15_37'>&nbsp;</td></tr>
+      <tr><th class=u>36</th><td title='H15_36' onclick="table_cell_click('H15_36');" id='H15_36'>&nbsp;</td></tr>
+      <tr><th class=u>35</th><td title='H15_35' onclick="table_cell_click('H15_35');" id='H15_35'>&nbsp;</td></tr>
+      <tr><th class=u>34</th><td title='H15_34' onclick="table_cell_click('H15_34');" id='H15_34'>&nbsp;</td></tr>
+      <tr><th class=u>33</th><td title='H15_33' onclick="table_cell_click('H15_33');" id='H15_33'>&nbsp;</td>
+			<th class=u>5</th><th class=u>6</th></tr>
+	  </tr>
+      <tr><th class=u>32</th><td title='H15_32' onclick="table_cell_click('H15_32');" id='H15_32'>&nbsp;</td>
+	      <td class=v rowspan="10" title='H15_B_5' id='H15_B_5'>&nbsp;</td> 
+	      <td class=v rowspan="10" title='H15_B_6' id='H15_B_6'>&nbsp;</td>
+	  </tr>
+      <tr><th class=u>31</th><td title='H15_31' onclick="table_cell_click('H15_31');" id='H15_31'>&nbsp;</td></tr>
+      <tr><th class=u>30</th><td title='H15_30' onclick="table_cell_click('H15_30');" id='H15_30'>&nbsp;</td></tr>
+      <tr><th class=u>29</th><td title='H15_29' onclick="table_cell_click('H15_29');" id='H15_29'>&nbsp;</td></tr>
+      <tr><th class=u>28</th><td title='H15_28' onclick="table_cell_click('H15_28');" id='H15_28'>&nbsp;</td></tr>
+      <tr><th class=u>27</th><td title='H15_27' onclick="table_cell_click('H15_27');" id='H15_27'>&nbsp;</td></tr>
+      <tr><th class=u>26</th><td title='H15_26' onclick="table_cell_click('H15_26');" id='H15_26'>&nbsp;</td></tr>
+      <tr><th class=u>25</th><td title='H15_25' onclick="table_cell_click('H15_25');" id='H15_25'>&nbsp;</td></tr>
+      <tr><th class=u>24</th><td title='H15_24' onclick="table_cell_click('H15_24');" id='H15_24'>&nbsp;</td></tr>
+      <tr><th class=u>23</th><td title='H15_23' onclick="table_cell_click('H15_23');" id='H15_23'>&nbsp;</td></tr>
+      <tr><th class=u>22</th><td title='H15_22' onclick="table_cell_click('H15_22');" id='H15_22'>&nbsp;</td>
+	      <th class=u>3</th><th class=u>4</th>
+	  </tr>
+      <tr><th class=u>21</th><td title='H15_21' onclick="table_cell_click('H15_21');" id='H15_21'>&nbsp;</td>
+	      <td class=v rowspan="10" title='H15_B_3' id='H15_B_3'>&nbsp;</td> 
+	      <td class=v rowspan="10" title='H15_B_4' id='H15_B_4'>&nbsp;</td>
+	  </tr>
+      <tr><th class=u>20</th><td title='H15_20' onclick="table_cell_click('H15_20');" id='H15_20'>&nbsp;</td></tr>
+      <tr><th class=u>19</th><td title='H15_19' onclick="table_cell_click('H15_19');" id='H15_19'>&nbsp;</td></tr>
+      <tr><th class=u>18</th><td title='H15_18' onclick="table_cell_click('H15_18');" id='H15_18'>&nbsp;</td></tr>
+      <tr><th class=u>17</th><td title='H15_17' onclick="table_cell_click('H15_17');" id='H15_17'>&nbsp;</td></tr>
+      <tr><th class=u>16</th><td title='H15_16' onclick="table_cell_click('H15_16');" id='H15_16'>&nbsp;</td></tr>
+      <tr><th class=u>15</th><td title='H15_15' onclick="table_cell_click('H15_15');" id='H15_15'>&nbsp;</td></tr>
+      <tr><th class=u>14</th><td title='H15_14' onclick="table_cell_click('H15_14');" id='H15_14'>&nbsp;</td></tr>
+      <tr><th class=u>13</th><td title='H15_13' onclick="table_cell_click('H15_13');" id='H15_13'>&nbsp;</td></tr>
+      <tr><th class=u>12</th><td title='H15_12' onclick="table_cell_click('H15_12');" id='H15_12'>&nbsp;</td></tr>
+      <tr><th class=u>11</th><td title='H15_11' onclick="table_cell_click('H15_11');" id='H15_11'>&nbsp;</td>
+	      <th class=u>1</th><th class=u>2</th>
+	  </tr>
+      <tr><th class=u>10</th><td title='H15_10' onclick="table_cell_click('H15_10');" id='H15_10'>&nbsp;</td>
+	      <td class=v rowspan="10" title='H15_B_1' id='H15_B_1'>&nbsp;</td>
+	      <td class=v rowspan="10" title='H15_B_2' id='H15_B_2'>&nbsp;</td>
+	  </tr>
+      <tr><th class=u>9</th><td title='H15_9' onclick="table_cell_click('H15_9');" id='H15_9'>&nbsp;</td></tr>
+      <tr><th class=u>8</th><td title='H15_8' onclick="table_cell_click('H15_8');" id='H15_8'>&nbsp;</td></tr>
+      <tr><th class=u>7</th><td title='H15_7' onclick="table_cell_click('H15_7');" id='H15_7'>&nbsp;</td></tr>
+      <tr><th class=u>6</th><td title='H15_6' onclick="table_cell_click('H15_6');" id='H15_6'>&nbsp;</td></tr>
+      <tr><th class=u>5</th><td title='H15_5' onclick="table_cell_click('H15_5');" id='H15_5'>&nbsp;</td></tr>
+      <tr><th class=u>4</th><td title='H15_4' onclick="table_cell_click('H15_4');" id='H15_4'>&nbsp;</td></tr>
+      <tr><th class=u>3</th><td title='H15_3' onclick="table_cell_click('H15_3');" id='H15_3'>&nbsp;</td></tr>
+      <tr><th class=u>2</th><td title='H15_2' onclick="table_cell_click('H15_2');" id='H15_2'>&nbsp;</td></tr>
+      <tr><th class=u>1</th><td title='H15_1' onclick="table_cell_click('H15_1');" id='H15_1'>&nbsp;</td></tr>
+    </table></td>
+    <td><table id='I15' class=rack><tr><th>&nbsp;</th><th>I15</th><th colspan="2">D</th></tr>
+      <tr><th class=u>43</th><td title='I15_43' onclick="table_cell_click('I15_43');" id='I15_43'>&nbsp;</td>
+	  	<td class=v rowspan="10" title='I15_D_7' id='I15_D_7'>&nbsp;</td>
+	      <td class=v rowspan="10" title='I15_D_8' id='I15_D_8'>&nbsp;</td>
+	  </tr>
+      <tr><th class=u>42</th><td title='I15_42' onclick="table_cell_click('I15_42');" id='I15_42'>&nbsp;</td></tr>
+      <tr><th class=u>41</th><td title='I15_41' onclick="table_cell_click('I15_41');" id='I15_41'>&nbsp;</td></tr>
+      <tr><th class=u>40</th><td title='I15_40' onclick="table_cell_click('I15_40');" id='I15_40'>&nbsp;</td></tr>
+      <tr><th class=u>39</th><td title='I15_39' onclick="table_cell_click('I15_39');" id='I15_39'>&nbsp;</td></tr>
+      <tr><th class=u>38</th><td title='I15_38' onclick="table_cell_click('I15_38');" id='I15_38'>&nbsp;</td></tr>
+      <tr><th class=u>37</th><td title='I15_37' onclick="table_cell_click('I15_37');" id='I15_37'>&nbsp;</td></tr>
+      <tr><th class=u>36</th><td title='I15_36' onclick="table_cell_click('I15_36');" id='I15_36'>&nbsp;</td></tr>
+      <tr><th class=u>35</th><td title='I15_35' onclick="table_cell_click('I15_35');" id='I15_35'>&nbsp;</td></tr>
+      <tr><th class=u>34</th><td title='I15_34' onclick="table_cell_click('I15_34');" id='I15_34'>&nbsp;</td></tr>
+      <tr><th class=u>33</th><td title='I15_33' onclick="table_cell_click('I15_33');" id='I15_33'>&nbsp;</td>
+			<th class=u>5</th><th class=u>6</th></tr>
+	  </tr>
+      <tr><th class=u>32</th><td title='I15_32' onclick="table_cell_click('I15_32');" id='I15_32'>&nbsp;</td>
+	      <td class=v rowspan="10" title='I15_D_5' id='I15_D_5'>&nbsp;</td>
+	      <td class=v rowspan="10" title='I15_D_6' id='I15_D_6'>&nbsp;</td>
+	  </tr>
+      <tr><th class=u>31</th><td title='I15_31' onclick="table_cell_click('I15_31');" id='I15_31'>&nbsp;</td></tr>
+      <tr><th class=u>30</th><td title='I15_30' onclick="table_cell_click('I15_30');" id='I15_30'>&nbsp;</td></tr>
+      <tr><th class=u>29</th><td title='I15_29' onclick="table_cell_click('I15_29');" id='I15_29'>&nbsp;</td></tr>
+      <tr><th class=u>28</th><td title='I15_28' onclick="table_cell_click('I15_28');" id='I15_28'>&nbsp;</td></tr>
+      <tr><th class=u>27</th><td title='I15_27' onclick="table_cell_click('I15_27');" id='I15_27'>&nbsp;</td></tr>
+      <tr><th class=u>26</th><td title='I15_26' onclick="table_cell_click('I15_26');" id='I15_26'>&nbsp;</td></tr>
+      <tr><th class=u>25</th><td title='I15_25' onclick="table_cell_click('I15_25');" id='I15_25'>&nbsp;</td></tr>
+      <tr><th class=u>24</th><td title='I15_24' onclick="table_cell_click('I15_24');" id='I15_24'>&nbsp;</td></tr>
+      <tr><th class=u>23</th><td title='I15_23' onclick="table_cell_click('I15_23');" id='I15_23'>&nbsp;</td></tr>
+      <tr><th class=u>22</th><td title='I15_22' onclick="table_cell_click('I15_22');" id='I15_22'>&nbsp;</td>
+	      <th class=u>3</th><th class=u>4</th>
+	  </tr>
+      <tr><th class=u>21</th><td title='I15_21' onclick="table_cell_click('I15_21');" id='I15_21'>&nbsp;</td>
+	      <td class=v rowspan="10" title='I15_D_3' id='I15_D_3'>&nbsp;</td>
+	      <td class=v rowspan="10" title='I15_D_4' id='I15_D_4'>&nbsp;</td>
+	  </tr>
+      <tr><th class=u>20</th><td title='I15_20' onclick="table_cell_click('I15_20');" id='I15_20'>&nbsp;</td></tr>
+      <tr><th class=u>19</th><td title='I15_19' onclick="table_cell_click('I15_19');" id='I15_19'>&nbsp;</td></tr>
+      <tr><th class=u>18</th><td title='I15_18' onclick="table_cell_click('I15_18');" id='I15_18'>&nbsp;</td></tr>
+      <tr><th class=u>17</th><td title='I15_17' onclick="table_cell_click('I15_17');" id='I15_17'>&nbsp;</td></tr>
+      <tr><th class=u>16</th><td title='I15_16' onclick="table_cell_click('I15_16');" id='I15_16'>&nbsp;</td></tr>
+      <tr><th class=u>15</th><td title='I15_15' onclick="table_cell_click('I15_15');" id='I15_15'>&nbsp;</td></tr>
+      <tr><th class=u>14</th><td title='I15_14' onclick="table_cell_click('I15_14');" id='I15_14'>&nbsp;</td></tr>
+      <tr><th class=u>13</th><td title='I15_13' onclick="table_cell_click('I15_13');" id='I15_13'>&nbsp;</td></tr>
+      <tr><th class=u>12</th><td title='I15_12' onclick="table_cell_click('I15_12');" id='I15_12'>&nbsp;</td></tr>
+      <tr><th class=u>11</th><td title='I15_11' onclick="table_cell_click('I15_11');" id='I15_11'>&nbsp;</td>
+	      <th class=u>1</th><th class=u>2</th>
+	  </tr>
+      <tr><th class=u>10</th><td title='I15_10' onclick="table_cell_click('I15_10');" id='I15_10'>&nbsp;</td>
+	      <td class=v rowspan="10" title='I15_D_1' id='I15_D_1'>&nbsp;</td>
+	      <td class=v rowspan="10" title='I15_D_2' id='I15_D_2'>&nbsp;</td>
+	  </tr>
+      <tr><th class=u>9</th><td title='I15_9' onclick="table_cell_click('I15_9');" id='I15_9'>&nbsp;</td></tr>
+      <tr><th class=u>8</th><td title='I15_8' onclick="table_cell_click('I15_8');" id='I15_8'>&nbsp;</td></tr>
+      <tr><th class=u>7</th><td title='I15_7' onclick="table_cell_click('I15_7');" id='I15_7'>&nbsp;</td></tr>
+      <tr><th class=u>6</th><td title='I15_6' onclick="table_cell_click('I15_6');" id='I15_6'>&nbsp;</td></tr>
+      <tr><th class=u>5</th><td title='I15_5' onclick="table_cell_click('I15_5');" id='I15_5'>&nbsp;</td></tr>
+      <tr><th class=u>4</th><td title='I15_4' onclick="table_cell_click('I15_4');" id='I15_4'>&nbsp;</td></tr>
+      <tr><th class=u>3</th><td title='I15_3' onclick="table_cell_click('I15_3');" id='I15_3'>&nbsp;</td></tr>
+      <tr><th class=u>2</th><td title='I15_2' onclick="table_cell_click('I15_2');" id='I15_2'>&nbsp;</td></tr>
+      <tr><th class=u>1</th><td title='I15_1' onclick="table_cell_click('I15_1');" id='I15_1'>&nbsp;</td></tr>
+    </table></td>
+    <td><table id='K15' class=rack><tr><th>&nbsp;</th><th>K15</th><th colspan="2">B</th></tr>
+      <tr><th class=u>43</th><td title='K15_43' onclick="table_cell_click('K15_43');" id='K15_43'>&nbsp;</td>
+	  	    <td class=v rowspan="10" title='K15_B_7' id='K15_B_7'>&nbsp;</td>
+	        <td class=v rowspan="10" title='K15_B_8' id='K15_B_8'>&nbsp;</td>
+	    </tr>
+      <tr><th class=u>42</th><td title='K15_42' onclick="table_cell_click('K15_42');" id='K15_42'>&nbsp;</td></tr>
+      <tr><th class=u>41</th><td title='K15_41' onclick="table_cell_click('K15_41');" id='K15_41'>&nbsp;</td></tr>
+      <tr><th class=u>40</th><td title='K15_40' onclick="table_cell_click('K15_40');" id='K15_40'>&nbsp;</td></tr>
+      <tr><th class=u>39</th><td title='K15_39' onclick="table_cell_click('K15_39');" id='K15_39'>&nbsp;</td></tr>
+      <tr><th class=u>38</th><td title='K15_38' onclick="table_cell_click('K15_38');" id='K15_38'>&nbsp;</td></tr>
+      <tr><th class=u>37</th><td title='K15_37' onclick="table_cell_click('K15_37');" id='K15_37'>&nbsp;</td></tr>
+      <tr><th class=u>36</th><td title='K15_36' onclick="table_cell_click('K15_36');" id='K15_36'>&nbsp;</td></tr>
+      <tr><th class=u>35</th><td title='K15_35' onclick="table_cell_click('K15_35');" id='K15_35'>&nbsp;</td></tr>
+      <tr><th class=u>34</th><td title='K15_34' onclick="table_cell_click('K15_34');" id='K15_34'>&nbsp;</td></tr>
+      <tr><th class=u>33</th><td title='K15_33' onclick="table_cell_click('K15_33');" id='K15_33'>&nbsp;</td>
+			<th class=u>5</th><th class=u>6</th></tr>
+	  </tr>
+      <tr><th class=u>32</th><td title='K15_32' onclick="table_cell_click('K15_32');" id='K15_32'>&nbsp;</td>
+	      <td class=v rowspan="10" title='K15_B_5' id='K15_B_5'>&nbsp;</td>
+	      <td class=v rowspan="10" title='K15_B_6' id='K15_B_6'>&nbsp;</td>
+	  </tr>
+      <tr><th class=u>31</th><td title='K15_31' onclick="table_cell_click('K15_31');" id='K15_31'>&nbsp;</td></tr>
+      <tr><th class=u>30</th><td title='K15_30' onclick="table_cell_click('K15_30');" id='K15_30'>&nbsp;</td></tr>
+      <tr><th class=u>29</th><td title='K15_29' onclick="table_cell_click('K15_29');" id='K15_29'>&nbsp;</td></tr>
+      <tr><th class=u>28</th><td title='K15_28' onclick="table_cell_click('K15_28');" id='K15_28'>&nbsp;</td></tr>
+      <tr><th class=u>27</th><td title='K15_27' onclick="table_cell_click('K15_27');" id='K15_27'>&nbsp;</td></tr>
+      <tr><th class=u>26</th><td title='K15_26' onclick="table_cell_click('K15_26');" id='K15_26'>&nbsp;</td></tr>
+      <tr><th class=u>25</th><td title='K15_25' onclick="table_cell_click('K15_25');" id='K15_25'>&nbsp;</td></tr>
+      <tr><th class=u>24</th><td title='K15_24' onclick="table_cell_click('K15_24');" id='K15_24'>&nbsp;</td></tr>
+      <tr><th class=u>23</th><td title='K15_23' onclick="table_cell_click('K15_23');" id='K15_23'>&nbsp;</td></tr>
+      <tr><th class=u>22</th><td title='K15_22' onclick="table_cell_click('K15_22');" id='K15_22'>&nbsp;</td>
+	      <th class=u>3</th><th class=u>4</th>
+	  </tr>
+      <tr><th class=u>21</th><td title='K15_21' onclick="table_cell_click('K15_21');" id='K15_21'>&nbsp;</td>
+	      <td class=v rowspan="10" title='K15_B_3' id='K15_B_3'>&nbsp;</td>
+	      <td class=v rowspan="10" title='K15_B_4' id='K15_B_4'>&nbsp;</td>
+	  </tr>
+      <tr><th class=u>20</th><td title='K15_20' onclick="table_cell_click('K15_20');" id='K15_20'>&nbsp;</td></tr>
+      <tr><th class=u>19</th><td title='K15_19' onclick="table_cell_click('K15_19');" id='K15_19'>&nbsp;</td></tr>
+      <tr><th class=u>18</th><td title='K15_18' onclick="table_cell_click('K15_18');" id='K15_18'>&nbsp;</td></tr>
+      <tr><th class=u>17</th><td title='K15_17' onclick="table_cell_click('K15_17');" id='K15_17'>&nbsp;</td></tr>
+      <tr><th class=u>16</th><td title='K15_16' onclick="table_cell_click('K15_16');" id='K15_16'>&nbsp;</td></tr>
+      <tr><th class=u>15</th><td title='K15_15' onclick="table_cell_click('K15_15');" id='K15_15'>&nbsp;</td></tr>
+      <tr><th class=u>14</th><td title='K15_14' onclick="table_cell_click('K15_14');" id='K15_14'>&nbsp;</td></tr>
+      <tr><th class=u>13</th><td title='K15_13' onclick="table_cell_click('K15_13');" id='K15_13'>&nbsp;</td></tr>
+      <tr><th class=u>12</th><td title='K15_12' onclick="table_cell_click('K15_12');" id='K15_12'>&nbsp;</td></tr>
+      <tr><th class=u>11</th><td title='K15_11' onclick="table_cell_click('K15_11');" id='K15_11'>&nbsp;</td>
+	      <th class=u>1</th><th class=u>2</th>
+	  </tr>
+      <tr><th class=u>10</th><td title='K15_10' onclick="table_cell_click('K15_10');" id='K15_10'>&nbsp;</td>
+	      <td class=v rowspan="10" title='K15_B_1' id='K15_B_1'>&nbsp;</td>
+	      <td class=v rowspan="10" title='K15_B_2' id='K15_B_2'>&nbsp;</td>
+	  </tr>
+      <tr><th class=u>9</th><td title='K15_9' onclick="table_cell_click('K15_9');" id='K15_9'>&nbsp;</td></tr>
+      <tr><th class=u>8</th><td title='K15_8' onclick="table_cell_click('K15_8');" id='K15_8'>&nbsp;</td></tr>
+      <tr><th class=u>7</th><td title='K15_7' onclick="table_cell_click('K15_7');" id='K15_7'>&nbsp;</td></tr>
+      <tr><th class=u>6</th><td title='K15_6' onclick="table_cell_click('K15_6');" id='K15_6'>&nbsp;</td></tr>
+      <tr><th class=u>5</th><td title='K15_5' onclick="table_cell_click('K15_5');" id='K15_5'>&nbsp;</td></tr>
+      <tr><th class=u>4</th><td title='K15_4' onclick="table_cell_click('K15_4');" id='K15_4'>&nbsp;</td></tr>
+      <tr><th class=u>3</th><td title='K15_3' onclick="table_cell_click('K15_3');" id='K15_3'>&nbsp;</td></tr>
+      <tr><th class=u>2</th><td title='K15_2' onclick="table_cell_click('K15_2');" id='K15_2'>&nbsp;</td></tr>
+      <tr><th class=u>1</th><td title='K15_1' onclick="table_cell_click('K15_1');" id='K15_1'>&nbsp;</td></tr>
+    </table></td>
+    <td><table id='L15' class=rack><tr><th>&nbsp;</th><th>L15</th><th colspan="2">D</th></tr>
+      <tr><th class=u>43</th><td title='L15_43' onclick="table_cell_click('L15_43');" id='L15_43'>&nbsp;</td>
+	  	<td class=v rowspan="10" title='L15_D_7' id='L15_D_7'>&nbsp;</td>
+      <td class=v rowspan="10" title='L15_D_8' id='L15_D_8'>&nbsp;</td>
+	  </tr>
+      <tr><th class=u>42</th><td title='L15_42' onclick="table_cell_click('L15_42');" id='L15_42'>&nbsp;</td></tr>
+      <tr><th class=u>41</th><td title='L15_41' onclick="table_cell_click('L15_41');" id='L15_41'>&nbsp;</td></tr>
+      <tr><th class=u>40</th><td title='L15_40' onclick="table_cell_click('L15_40');" id='L15_40'>&nbsp;</td></tr>
+      <tr><th class=u>39</th><td title='L15_39' onclick="table_cell_click('L15_39');" id='L15_39'>&nbsp;</td></tr>
+      <tr><th class=u>38</th><td title='L15_38' onclick="table_cell_click('L15_38');" id='L15_38'>&nbsp;</td></tr>
+      <tr><th class=u>37</th><td title='L15_37' onclick="table_cell_click('L15_37');" id='L15_37'>&nbsp;</td></tr>
+      <tr><th class=u>36</th><td title='L15_36' onclick="table_cell_click('L15_36');" id='L15_36'>&nbsp;</td></tr>
+      <tr><th class=u>35</th><td title='L15_35' onclick="table_cell_click('L15_35');" id='L15_35'>&nbsp;</td></tr>
+      <tr><th class=u>34</th><td title='L15_34' onclick="table_cell_click('L15_34');" id='L15_34'>&nbsp;</td></tr>
+      <tr><th class=u>33</th><td title='L15_33' onclick="table_cell_click('L15_33');" id='L15_33'>&nbsp;</td>
+			<th class=u>5</th><th class=u>6</th></tr>
+	  </tr>
+      <tr><th class=u>32</th><td title='L15_32' onclick="table_cell_click('L15_32');" id='L15_32'>&nbsp;</td>
+	      <td class=v rowspan="10" title='L15_D_5' id='L15_D_5'>&nbsp;</td>
+        <td class=v rowspan="10" title='L15_D_6' id='L15_D_6'>&nbsp;</td>
+	  </tr>
+      <tr><th class=u>31</th><td title='L15_31' onclick="table_cell_click('L15_31');" id='L15_31'>&nbsp;</td></tr>
+      <tr><th class=u>30</th><td title='L15_30' onclick="table_cell_click('L15_30');" id='L15_30'>&nbsp;</td></tr>
+      <tr><th class=u>29</th><td title='L15_29' onclick="table_cell_click('L15_29');" id='L15_29'>&nbsp;</td></tr>
+      <tr><th class=u>28</th><td title='L15_28' onclick="table_cell_click('L15_28');" id='L15_28'>&nbsp;</td></tr>
+      <tr><th class=u>27</th><td title='L15_27' onclick="table_cell_click('L15_27');" id='L15_27'>&nbsp;</td></tr>
+      <tr><th class=u>26</th><td title='L15_26' onclick="table_cell_click('L15_26');" id='L15_26'>&nbsp;</td></tr>
+      <tr><th class=u>25</th><td title='L15_25' onclick="table_cell_click('L15_25');" id='L15_25'>&nbsp;</td></tr>
+      <tr><th class=u>24</th><td title='L15_24' onclick="table_cell_click('L15_24');" id='L15_24'>&nbsp;</td></tr>
+      <tr><th class=u>23</th><td title='L15_23' onclick="table_cell_click('L15_23');" id='L15_23'>&nbsp;</td></tr>
+      <tr><th class=u>22</th><td title='L15_22' onclick="table_cell_click('L15_22');" id='L15_22'>&nbsp;</td>
+	      <th class=u>3</th><th class=u>4</th>
+	  </tr>
+      <tr><th class=u>21</th><td title='L15_21' onclick="table_cell_click('L15_21');" id='L15_21'>&nbsp;</td>
+	      <td class=v rowspan="10" title='L15_D_3' id='L15_D_3'>&nbsp;</td>
+        <td class=v rowspan="10" title='L15_D_4' id='L15_D_4'>&nbsp;</td>
+	  </tr>
+      <tr><th class=u>20</th><td title='L15_20' onclick="table_cell_click('L15_20');" id='L15_20'>&nbsp;</td></tr>
+      <tr><th class=u>19</th><td title='L15_19' onclick="table_cell_click('L15_19');" id='L15_19'>&nbsp;</td></tr>
+      <tr><th class=u>18</th><td title='L15_18' onclick="table_cell_click('L15_18');" id='L15_18'>&nbsp;</td></tr>
+      <tr><th class=u>17</th><td title='L15_17' onclick="table_cell_click('L15_17');" id='L15_17'>&nbsp;</td></tr>
+      <tr><th class=u>16</th><td title='L15_16' onclick="table_cell_click('L15_16');" id='L15_16'>&nbsp;</td></tr>
+      <tr><th class=u>15</th><td title='L15_15' onclick="table_cell_click('L15_15');" id='L15_15'>&nbsp;</td></tr>
+      <tr><th class=u>14</th><td title='L15_14' onclick="table_cell_click('L15_14');" id='L15_14'>&nbsp;</td></tr>
+      <tr><th class=u>13</th><td title='L15_13' onclick="table_cell_click('L15_13');" id='L15_13'>&nbsp;</td></tr>
+      <tr><th class=u>12</th><td title='L15_12' onclick="table_cell_click('L15_12');" id='L15_12'>&nbsp;</td></tr>
+      <tr><th class=u>11</th><td title='L15_11' onclick="table_cell_click('L15_11');" id='L15_11'>&nbsp;</td>
+	      <th class=u>1</th><th class=u>2</th>
+	  </tr>
+      <tr><th class=u>10</th><td title='L15_10' onclick="table_cell_click('L15_10');" id='L15_10'>&nbsp;</td>
+	      <td class=v rowspan="10" title='L15_D_1' id='L15_D_1'>&nbsp;</td>
+        <td class=v rowspan="10" title='L15_D_2' id='L15_D_2'>&nbsp;</td>
+	  </tr>
+      <tr><th class=u>9</th><td title='L15_9' onclick="table_cell_click('L15_9');" id='L15_9'>&nbsp;</td></tr>
+      <tr><th class=u>8</th><td title='L15_8' onclick="table_cell_click('L15_8');" id='L15_8'>&nbsp;</td></tr>
+      <tr><th class=u>7</th><td title='L15_7' onclick="table_cell_click('L15_7');" id='L15_7'>&nbsp;</td></tr>
+      <tr><th class=u>6</th><td title='L15_6' onclick="table_cell_click('L15_6');" id='L15_6'>&nbsp;</td></tr>
+      <tr><th class=u>5</th><td title='L15_5' onclick="table_cell_click('L15_5');" id='L15_5'>&nbsp;</td></tr>
+      <tr><th class=u>4</th><td title='L15_4' onclick="table_cell_click('L15_4');" id='L15_4'>&nbsp;</td></tr>
+      <tr><th class=u>3</th><td title='L15_3' onclick="table_cell_click('L15_3');" id='L15_3'>&nbsp;</td></tr>
+      <tr><th class=u>2</th><td title='L15_2' onclick="table_cell_click('L15_2');" id='L15_2'>&nbsp;</td></tr>
+      <tr><th class=u>1</th><td title='L15_1' onclick="table_cell_click('L15_1');" id='L15_1'>&nbsp;</td></tr>
+    </table></td>
+    </tr>
+    <tr><td colspan="15" id='date_stamp' align='right'>&nbsp</td></tr>
+    <tr><td colspan="15" align='right'>
+      <table border="1" cellspacing="0" cellpadding="0" >
+        <tr align="center">
+        <td cellpadding="0" width="36" height="12" bgcolor="#00ff00">-100%</td>
+        <td cellpadding="0" width="36" height="12" bgcolor="#06ff06">-90%</td>
+        <td cellpadding="0" width="36" height="12" bgcolor="#1eff1e">-80%</td>
+        <td cellpadding="0" width="36" height="12" bgcolor="#37ff37">-70%</td>
+        <td cellpadding="0" width="36" height="12" bgcolor="#50ff50">-60%</td>
+        <td cellpadding="0" width="36" height="12" bgcolor="#69ff69">-50%</td>
+        <td cellpadding="0" width="36" height="12" bgcolor="#82ff82">-40%</td>
+        <td cellpadding="0" width="36" height="12" bgcolor="#9bff9b">-30%</td>
+        <td cellpadding="0" width="36" height="12" bgcolor="#b4ffb4">-20%</td>
+        <td cellpadding="0" width="36" height="12" bgcolor="#cdffcd">-10%</td>
+        <td cellpadding="0" width="36" height="12" bgcolor="#FFFFFF">0%</td>
+        <td cellpadding="0" width="36" height="12" bgcolor="#ffe6e6">10%</td>
+        <td cellpadding="0" width="36" height="12" bgcolor="#ffcdcd">20%</td>
+        <td cellpadding="0" width="36" height="12" bgcolor="#ffb4b4">30%</td>
+        <td cellpadding="0" width="36" height="12" bgcolor="#ff9b9b">40%</td>
+        <td cellpadding="0" width="36" height="12" bgcolor="#ff8282">50%</td>
+        <td cellpadding="0" width="36" height="12" bgcolor="#ff6969">60%</td>
+        <td cellpadding="0" width="36" height="12" bgcolor="#ff5050">70%</td>
+        <td cellpadding="0" width="36" height="12" bgcolor="#ff3737">80%</td>
+        <td cellpadding="0" width="36" height="12" bgcolor="#ff1e1e">90%</td>
+        <td cellpadding="0" width="36" height="12" bgcolor="#FF0000">100%</td>
+        <td cellpadding="0" width="36" height="12" bgcolor="#eeee00">Suspended Jobs</td> 
+        <td cellpadding="0" width="36" height="12" bgcolor="grey"><font color="white">Infrastructure</td>
+        <td cellpadding="0" width="36" height="12" bgcolor="black"><font color="white">Empty</font></td>
+        </tr>
+      </table>
+    </td>
+  </tr>
+</table>
+Mouse over the squares to high-level information about the machine. Click on a square to see details about the machine.<p>
+
+<table cellpadding="30">
+  <tr>
+    <td valign="top"  width="50%">
+      <b>Cluster nodes where more processes/threads run than CPU cores available</b><br>
+      <table width="100%" class="tablesorter">
+        <thead>
+          <tr>
+            <th align="left" width='25%'>Node</th>
+            <th align="left" width='25%'>OverLoad</th>
+            <th align="left" width='25%'>#Processes/Threads</th>
+            <th align="left"  width='25%'>#CPU cores</th>
+          </tr>
+        </thead>
+        <tbody id="overloaded_nodes_table" >
+        </tbody>
+      </table>
+    </td>
+    <td valign="top"width="50%"><b>Cluster nodes where processes run that have CPU usage between 5% and 60%</b><br>
+      <table width="100%" class="tablesorter">
+      <thead>
+        <tr >
+          <th align="left" width='50%'>Node</th>
+          <th align="left" width='50%'>#Processes</th>
+        </tr>
+      </thead>
+      <tbody id="nodes_with_weak_processes_table" >
+      </tbody>
+    </table>
+    </td>
+  </tr>
+</table>
+
+    <script>
+      init();
+    </script>
+  </body>
+</html>

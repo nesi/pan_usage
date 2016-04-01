@@ -1,0 +1,7 @@
+{
+  'ignore': [
+  'compute-fmhs-001',
+  'compute-gpu-c1-001',
+  'compute-gpu-b1-008'
+  ]
+}
